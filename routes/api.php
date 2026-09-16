@@ -66,6 +66,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/stock-opnames', [\App\Http\Controllers\Api\MikmsController::class, 'storeStockOpname']);
         Route::get('/logs', [\App\Http\Controllers\Api\MikmsController::class, 'getLogs']);
         Route::get('/export/excel', [\App\Http\Controllers\Api\MikmsExportController::class, 'exportExcel']);
+
+        // Smart Cascading BOM — Package Order
+        Route::get('/package-simulate', [\App\Http\Controllers\Api\MikmsController::class, 'packageSimulate']);
+        Route::get('/package-orders', [\App\Http\Controllers\Api\MikmsController::class, 'getPackageOrders']);
+        Route::post('/package-orders', [\App\Http\Controllers\Api\MikmsController::class, 'storePackageOrder']);
+
+        // Module Stock Management
+        Route::get('/module-stocks', [\App\Http\Controllers\Api\MikmsController::class, 'getModuleStocks']);
+        Route::post('/module-stocks/adjust', [\App\Http\Controllers\Api\MikmsController::class, 'adjustModuleStock']);
     });
 
     // File Downloads / Exports

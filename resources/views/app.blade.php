@@ -1124,6 +1124,12 @@ button, .btn, .sb-item, .pin-dot {
           <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="logs" onclick="switchMikmsTab('logs')">
             📜 Riwayat Aktivitas
           </button>
+          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="packageorder" onclick="switchMikmsTab('packageorder')">
+            📦 Pesan Paket
+          </button>
+          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="modulestocks" onclick="switchMikmsTab('modulestocks')">
+            🏭 Stok Modul Jadi
+          </button>
         </div>
 
         <!-- ═══ TAB 1: DAFTAR BOKS KIT ═══ -->
@@ -1755,6 +1761,185 @@ button, .btn, .sb-item, .pin-dot {
             </div>
           </div>
         </div>
+
+        <!-- ═══ TAB: PESAN PAKET (PACKAGE ORDER + CASCADING BOM) ═══ -->
+        <div class="mikms-tab-content hidden" id="mk-panel-packageorder">
+          <div class="card bg-base-100 border border-base-300 shadow-sm p-5 mb-4">
+            <h3 class="font-extrabold text-sm uppercase tracking-wider text-base-content/70 flex items-center gap-2 mb-4">
+              <span>📦</span> Pesan Paket — Smart Cascading BOM Deduction
+            </h3>
+            <p class="text-xs text-base-content/50 mb-4 leading-relaxed">
+              Input pesanan paket, sistem otomatis menghitung: <strong>Tier 1</strong> — ambil modul jadi dari rak. <strong>Tier 2</strong> — rakit dari bahan baku (BOM) jika modul kurang.
+            </p>
+
+            <!-- FORM INPUT PESANAN -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="label text-xs font-bold">Program Kit</label>
+                <select id="pkg-program" class="select select-bordered select-sm w-full font-semibold">
+                  <option value="MLK">Microbit Learning Kit (MLK) — 95 pcs/paket</option>
+                  <option value="ROBOTIC">Robotic Explorer — 81 pcs/paket</option>
+                </select>
+              </div>
+              <div>
+                <label class="label text-xs font-bold">Jumlah Paket</label>
+                <input type="number" id="pkg-qty" class="input input-bordered input-sm w-full font-semibold" placeholder="contoh: 5" min="1" max="100" value="1">
+              </div>
+              <div>
+                <label class="label text-xs font-bold">Nama Sekolah / Customer</label>
+                <input type="text" id="pkg-customer" class="input input-bordered input-sm w-full" placeholder="SDN 1 Bandung">
+              </div>
+              <div>
+                <label class="label text-xs font-bold">Petugas</label>
+                <input type="text" id="pkg-orderedby" class="input input-bordered input-sm w-full" placeholder="Nama petugas">
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="label text-xs font-bold">Catatan (opsional)</label>
+              <textarea id="pkg-notes" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="Catatan tambahan..."></textarea>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button class="btn btn-sm btn-info text-white font-bold" onclick="simulatePackageOrder()">
+                🔍 Preview Kebutuhan
+              </button>
+              <button class="btn btn-sm btn-success text-white font-bold" id="pkg-confirm-btn" style="display:none" onclick="executePackageOrder()">
+                ✅ Konfirmasi & Proses Pesanan
+              </button>
+            </div>
+          </div>
+
+          <!-- PREVIEW PANEL -->
+          <div id="pkg-preview-panel" style="display:none">
+            <!-- Summary Alert -->
+            <div id="pkg-summary-alert" class="mb-4"></div>
+
+            <!-- Modules Breakdown -->
+            <div class="card bg-base-100 border border-base-300 shadow-sm p-5 mb-4">
+              <h4 class="font-extrabold text-xs uppercase tracking-wider text-base-content/60 mb-3">📊 Breakdown per Modul</h4>
+              <div class="overflow-x-auto border border-base-200 rounded-xl">
+                <table class="table table-xs table-zebra w-full">
+                  <thead class="bg-base-200">
+                    <tr>
+                      <th>Kode</th>
+                      <th>Nama Modul</th>
+                      <th class="text-center">Dibutuhkan</th>
+                      <th class="text-center">Stok Jadi</th>
+                      <th class="text-center">Dari Rak</th>
+                      <th class="text-center">Perlu Dirakit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pkg-modules-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Raw Materials Needed -->
+            <div class="card bg-base-100 border border-base-300 shadow-sm p-5 mb-4" id="pkg-raw-section" style="display:none">
+              <h4 class="font-extrabold text-xs uppercase tracking-wider text-base-content/60 mb-3">🧱 Bahan Baku yang Perlu Dipotong (Tier 2)</h4>
+              <div class="overflow-x-auto border border-base-200 rounded-xl">
+                <table class="table table-xs table-zebra w-full">
+                  <thead class="bg-base-200">
+                    <tr>
+                      <th>Kode</th>
+                      <th>Nama Komponen</th>
+                      <th class="text-center">Dibutuhkan</th>
+                      <th class="text-center">Stok Tersedia</th>
+                      <th class="text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pkg-raw-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Shortages -->
+            <div id="pkg-shortages-section" style="display:none" class="mb-4">
+              <div class="alert alert-error shadow-sm">
+                <span class="font-bold">❌ Bahan Baku Kurang:</span>
+                <ul id="pkg-shortages-list" class="list-disc list-inside text-sm mt-1"></ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIWAYAT PESANAN PAKET -->
+          <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
+            <h3 class="font-extrabold text-sm uppercase tracking-wider text-base-content/70 flex items-center gap-2 mb-4">
+              <span>📋</span> Riwayat Pesanan Paket
+            </h3>
+            <div class="overflow-x-auto border border-base-200 rounded-xl">
+              <table class="table table-xs table-zebra table-pin-rows w-full">
+                <thead class="bg-base-200">
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Program</th>
+                    <th class="text-center">Qty</th>
+                    <th>Customer</th>
+                    <th>Petugas</th>
+                    <th>Status</th>
+                    <th>Detail</th>
+                  </tr>
+                </thead>
+                <tbody id="pkg-orders-tbody">
+                  <tr><td colspan="7" class="text-center py-8 text-base-content/40">Memuat riwayat...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: STOK MODUL JADI ═══ -->
+        <div class="mikms-tab-content hidden" id="mk-panel-modulestocks">
+          <div class="card bg-base-100 border border-base-300 shadow-sm p-5 mb-4">
+            <h3 class="font-extrabold text-sm uppercase tracking-wider text-base-content/70 flex items-center gap-2 mb-4">
+              <span>🏭</span> Inventori Modul Jadi di Rak
+            </h3>
+            <p class="text-xs text-base-content/50 mb-4 leading-relaxed">
+              Stok modul yang sudah dirakit dan siap dipakai untuk package order. Adjust manual jika ada hasil rakitan baru masuk.
+            </p>
+
+            <div class="overflow-x-auto border border-base-200 rounded-xl mb-4">
+              <table class="table table-xs table-zebra w-full">
+                <thead class="bg-base-200">
+                  <tr>
+                    <th>Kode</th>
+                    <th>Nama Modul</th>
+                    <th class="text-center">Stok Ready</th>
+                    <th class="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="modstock-tbody">
+                  <tr><td colspan="4" class="text-center py-8 text-base-content/40">Memuat stok modul...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Quick Adjust Form -->
+            <div class="card bg-base-200/50 border border-base-300 p-4">
+              <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/60 mb-3">⚡ Penyesuaian Stok Modul Cepat</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label class="label text-xs font-bold">Modul</label>
+                  <select id="modadj-module" class="select select-bordered select-sm w-full font-semibold"></select>
+                </div>
+                <div>
+                  <label class="label text-xs font-bold">Penyesuaian (+/-)</label>
+                  <input type="number" id="modadj-qty" class="input input-bordered input-sm w-full font-semibold" placeholder="+10 atau -3">
+                </div>
+                <div>
+                  <label class="label text-xs font-bold">Alasan</label>
+                  <input type="text" id="modadj-reason" class="input input-bordered input-sm w-full" placeholder="Hasil rakitan hari ini">
+                </div>
+                <div class="flex items-end">
+                  <button class="btn btn-sm btn-primary text-white font-bold w-full" onclick="adjustModuleStock()">
+                    💾 Simpan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- ═════════════════════════════════════════════
@@ -4619,6 +4804,8 @@ function switchMikmsTab(tab) {
   if (tab === 'repair') renderMikmsRepairTab();
   if (tab === 'opname') renderMikmsOpnameTable();
   if (tab === 'logs') renderMikmsLogsTable();
+  if (tab === 'packageorder') renderPackageOrderTab();
+  if (tab === 'modulestocks') renderModuleStocksTab();
 }
 
 /* ── STANDAR BOM & LIST KOMPONEN DATA (SHEET 2) ── */
@@ -5590,6 +5777,319 @@ function formatDateTime(dtStr) {
     return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   } catch {
     return dtStr;
+  }
+}
+
+/* ═════════════════════════════════════════════
+   PACKAGE ORDER — SIMULATE, EXECUTE, HISTORY
+   ═════════════════════════════════════════════ */
+
+let lastSimulationResult = null;
+
+function renderPackageOrderTab() {
+  loadPackageOrderHistory();
+}
+
+async function simulatePackageOrder() {
+  const program = document.getElementById('pkg-program').value;
+  const qty = document.getElementById('pkg-qty').value;
+
+  if (!qty || qty < 1) {
+    showToast('Masukkan jumlah paket yang valid', true);
+    return;
+  }
+
+  showToast('Menghitung kebutuhan paket...');
+
+  try {
+    const res = await fetch(`/api/mikms/package-simulate?program_code=${program}&package_qty=${qty}`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+    });
+    const json = await res.json();
+    if (json.status !== 'success') {
+      showToast(json.message || 'Gagal simulate', true);
+      return;
+    }
+
+    lastSimulationResult = json.data;
+    renderSimulationPreview(json.data);
+  } catch (e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
+function renderSimulationPreview(data) {
+  const panel = document.getElementById('pkg-preview-panel');
+  panel.style.display = '';
+
+  // Summary alert
+  const alertDiv = document.getElementById('pkg-summary-alert');
+  if (data.can_fulfill) {
+    alertDiv.innerHTML = `<div class="alert alert-success shadow-sm"><span class="font-bold text-sm">${data.summary}</span></div>`;
+    document.getElementById('pkg-confirm-btn').style.display = '';
+  } else {
+    alertDiv.innerHTML = `<div class="alert alert-warning shadow-sm"><span class="font-bold text-sm">${data.summary}</span></div>`;
+    document.getElementById('pkg-confirm-btn').style.display = 'none';
+  }
+
+  // Modules breakdown table
+  const modTbody = document.getElementById('pkg-modules-tbody');
+  modTbody.innerHTML = data.modules_breakdown.map(m => {
+    const assembleClass = m.to_assemble > 0 ? 'text-warning font-extrabold' : 'text-success font-bold';
+    const stockClass = m.from_stock > 0 ? 'text-success font-extrabold' : '';
+    return `<tr>
+      <td class="font-mono font-bold">${m.code}</td>
+      <td>${m.name}</td>
+      <td class="text-center font-bold">${m.needed}</td>
+      <td class="text-center">${m.ready_stock}</td>
+      <td class="text-center ${stockClass}">${m.from_stock}</td>
+      <td class="text-center ${assembleClass}">${m.to_assemble}</td>
+    </tr>`;
+  }).join('');
+
+  // Raw materials table
+  const rawSection = document.getElementById('pkg-raw-section');
+  const rawTbody = document.getElementById('pkg-raw-tbody');
+  if (data.raw_materials_needed && data.raw_materials_needed.length > 0) {
+    rawSection.style.display = '';
+    rawTbody.innerHTML = data.raw_materials_needed.map(r => {
+      const statusBadge = r.sufficient
+        ? '<span class="badge badge-success badge-xs text-white font-bold">Cukup</span>'
+        : '<span class="badge badge-error badge-xs text-white font-bold">Kurang</span>';
+      const rowClass = r.sufficient ? '' : 'bg-error/10';
+      return `<tr class="${rowClass}">
+        <td class="font-mono font-bold">${r.code}</td>
+        <td>${r.name}</td>
+        <td class="text-center font-bold">${r.needed} ${r.unit}</td>
+        <td class="text-center">${r.available} ${r.unit}</td>
+        <td class="text-center">${statusBadge}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    rawSection.style.display = 'none';
+  }
+
+  // Shortages section
+  const shortSection = document.getElementById('pkg-shortages-section');
+  const shortList = document.getElementById('pkg-shortages-list');
+  if (data.shortages && data.shortages.length > 0) {
+    shortSection.style.display = '';
+    shortList.innerHTML = data.shortages.map(s =>
+      `<li><strong>${s.code}</strong> ${s.name}: kurang <strong>${s.shortage} ${s.unit}</strong> (butuh ${s.needed}, stok ${s.available})</li>`
+    ).join('');
+  } else {
+    shortSection.style.display = 'none';
+  }
+}
+
+async function executePackageOrder() {
+  const program = document.getElementById('pkg-program').value;
+  const qty = document.getElementById('pkg-qty').value;
+  const customer = document.getElementById('pkg-customer').value.trim();
+  const orderedBy = document.getElementById('pkg-orderedby').value.trim();
+  const notes = document.getElementById('pkg-notes').value.trim();
+
+  if (!customer) { showToast('Nama sekolah / customer wajib diisi', true); return; }
+  if (!orderedBy) { showToast('Nama petugas wajib diisi', true); return; }
+
+  if (!confirm(`Proses pesanan ${qty} paket ${program}?\n\nStok akan langsung dipotong dan tidak bisa di-undo.`)) return;
+
+  showToast('Memproses pesanan paket...');
+
+  try {
+    const res = await fetch('/api/mikms/package-orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        order_date: new Date().toISOString().slice(0, 10),
+        program_code: program,
+        package_qty: parseInt(qty),
+        customer_name: customer,
+        ordered_by: orderedBy,
+        notes: notes || null,
+      }),
+    });
+    const json = await res.json();
+    if (json.status === 'success') {
+      showToast(json.message);
+      document.getElementById('pkg-confirm-btn').style.display = 'none';
+      document.getElementById('pkg-preview-panel').style.display = 'none';
+      lastSimulationResult = null;
+      loadPackageOrderHistory();
+      // Reset form
+      document.getElementById('pkg-customer').value = '';
+      document.getElementById('pkg-orderedby').value = '';
+      document.getElementById('pkg-notes').value = '';
+      document.getElementById('pkg-qty').value = '1';
+    } else {
+      showToast(json.message || 'Gagal memproses pesanan', true);
+      if (json.shortages) {
+        alert('Detail kekurangan:\n' + json.shortages.join('\n'));
+      }
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
+async function loadPackageOrderHistory() {
+  try {
+    const res = await fetch('/api/mikms/package-orders', {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+    });
+    const json = await res.json();
+    const tbody = document.getElementById('pkg-orders-tbody');
+    const orders = json.data?.data || json.data || [];
+
+    if (!orders.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-base-content/40">Belum ada pesanan paket</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = orders.map(o => {
+      const statusBadge = o.status === 'COMPLETED'
+        ? '<span class="badge badge-success badge-xs text-white font-bold">Selesai</span>'
+        : `<span class="badge badge-warning badge-xs font-bold">${o.status}</span>`;
+      const dateStr = o.order_date ? new Date(o.order_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+      return `<tr>
+        <td class="font-mono text-xs">${dateStr}</td>
+        <td class="font-bold">${o.program_name || o.program_code}</td>
+        <td class="text-center font-extrabold text-primary">${o.package_qty}</td>
+        <td>${o.customer_name || '—'}</td>
+        <td>${o.ordered_by || '—'}</td>
+        <td>${statusBadge}</td>
+        <td><button class="btn btn-xs btn-ghost" onclick="showDeductionLog(${o.id})">📋</button></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    console.error('loadPackageOrderHistory error:', e);
+  }
+}
+
+function showDeductionLog(orderId) {
+  fetch('/api/mikms/package-orders', {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+  }).then(r => r.json()).then(json => {
+    const orders = json.data?.data || json.data || [];
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.deduction_log) {
+      alert('Log deduction tidak tersedia');
+      return;
+    }
+    const log = typeof order.deduction_log === 'string' ? JSON.parse(order.deduction_log) : order.deduction_log;
+    let msg = `📦 Pesanan #${orderId}: ${log.package_qty}x ${log.program_name}\n`;
+    msg += `Waktu: ${log.timestamp}\n\n`;
+    msg += '--- Modul ---\n';
+    (log.modules || []).forEach(m => {
+      msg += `${m.code} ${m.name}: butuh ${m.needed}, dari rak ${m.from_ready_stock}, dirakit ${m.assembled_from_raw}\n`;
+    });
+    if (log.raw_materials_deducted && log.raw_materials_deducted.length > 0) {
+      msg += '\n--- Bahan Baku Dipotong ---\n';
+      log.raw_materials_deducted.forEach(r => {
+        msg += `${r.item_code} ${r.item_name}: ${r.qty_deducted} (untuk ${r.for_module})\n`;
+      });
+    }
+    alert(msg);
+  });
+}
+
+/* ═════════════════════════════════════════════
+   MODULE STOCK MANAGEMENT
+   ═════════════════════════════════════════════ */
+
+let moduleStocksData = [];
+
+function renderModuleStocksTab() {
+  loadModuleStocks();
+}
+
+async function loadModuleStocks() {
+  try {
+    const res = await fetch('/api/mikms/module-stocks', {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+    });
+    const json = await res.json();
+    moduleStocksData = json.data || [];
+
+    // Render table
+    const tbody = document.getElementById('modstock-tbody');
+    if (!moduleStocksData.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-base-content/40">Tidak ada data modul</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = moduleStocksData.map(s => {
+      const stockBadge = s.stock_ready > 0
+        ? `<span class="badge badge-success badge-sm text-white font-extrabold">${s.stock_ready}</span>`
+        : `<span class="badge badge-ghost badge-sm font-bold">0</span>`;
+      return `<tr>
+        <td class="font-mono font-bold">${s.module_code}</td>
+        <td>${s.module_name}</td>
+        <td class="text-center">${stockBadge}</td>
+        <td class="text-center">
+          <button class="btn btn-xs btn-ghost" onclick="prefillModuleAdjust(${s.module_id}, '${s.module_code}')">⚡ Adjust</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Populate adjust dropdown
+    const select = document.getElementById('modadj-module');
+    select.innerHTML = moduleStocksData.map(s =>
+      `<option value="${s.module_id}">${s.module_code} - ${s.module_name} (stok: ${s.stock_ready})</option>`
+    ).join('');
+
+  } catch (e) {
+    console.error('loadModuleStocks error:', e);
+  }
+}
+
+function prefillModuleAdjust(moduleId, moduleCode) {
+  const select = document.getElementById('modadj-module');
+  select.value = moduleId;
+  document.getElementById('modadj-qty').focus();
+}
+
+async function adjustModuleStock() {
+  const moduleId = document.getElementById('modadj-module').value;
+  const qty = document.getElementById('modadj-qty').value;
+  const reason = document.getElementById('modadj-reason').value.trim();
+
+  if (!moduleId) { showToast('Pilih modul terlebih dahulu', true); return; }
+  if (!qty || qty == 0) { showToast('Masukkan jumlah penyesuaian (+/-)', true); return; }
+  if (!reason) { showToast('Alasan penyesuaian wajib diisi', true); return; }
+
+  const currentUser = document.getElementById('sb-uname')?.textContent || 'System';
+
+  try {
+    const res = await fetch('/api/mikms/module-stocks/adjust', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        module_id: parseInt(moduleId),
+        adjustment: parseInt(qty),
+        reason: reason,
+        adjusted_by: currentUser,
+      }),
+    });
+    const json = await res.json();
+    if (json.status === 'success') {
+      showToast(json.message);
+      document.getElementById('modadj-qty').value = '';
+      document.getElementById('modadj-reason').value = '';
+      loadModuleStocks();
+    } else {
+      showToast(json.message || 'Gagal menyesuaikan stok', true);
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, true);
   }
 }
 </script>

@@ -16,6 +16,9 @@ use App\Models\MikmsShipment;
 use App\Models\MikmsReturn;
 use App\Models\MikmsRepair;
 use App\Models\MikmsStockOpname;
+use App\Models\MikmsModuleStock;
+use App\Models\MikmsModuleStockLog;
+use App\Models\MikmsPackageOrder;
 
 class MikmsController extends Controller
 {
@@ -192,9 +195,10 @@ class MikmsController extends Controller
                 Transaction::create([
                     'item_id' => $bom->item_id,
                     'user_id' => $userId,
-                    'jenis' => 'keluar',
-                    'jumlah' => $needed,
-                    'keterangan' => "Produksi MIKMS: {$module->code} - {$module->name} x {$qty}",
+                    'tipe' => 'keluar',
+                    'qty' => $needed,
+                    'transaction_date' => $validated['production_date'],
+                    'catatan' => "Produksi MIKMS: {$module->code} - {$module->name} x {$qty}",
                     'lokasi' => 'Gudang Utama',
                 ]);
             }
@@ -439,10 +443,422 @@ class MikmsController extends Controller
             case 'opname':
                 $data = MikmsStockOpname::latest()->paginate(20);
                 break;
+            case 'package_orders':
+                $data = MikmsPackageOrder::latest()->paginate(20);
+                break;
             default:
                 $data = [];
         }
 
         return response()->json(['status' => 'success', 'data' => $data]);
     }
+
+    // =============================================
+    // PROGRAM-TO-MODULE MAPPING (from Excel BOM)
+    // =============================================
+
+    /**
+     * Map program codes to their required module codes.
+     * MLK (Microbit Learning Kit): M01-M07, total 95 pcs per kit
+     * ROBOTIC (Robotic Explorer): M01,M03-M05,M07,M08, total 81 pcs per kit
+     */
+    private function getProgramModules(): array
+    {
+        return [
+            'MLK' => [
+                'name' => 'Microbit Learning Kit',
+                'modules' => ['M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07'],
+                'total_pcs' => 95,
+            ],
+            'ROBOTIC' => [
+                'name' => 'Robotic Explorer',
+                'modules' => ['M01', 'M03', 'M04', 'M05', 'M07', 'M08'],
+                'total_pcs' => 81,
+            ],
+        ];
+    }
+
+    // =============================================
+    // PACKAGE SIMULATE (Dry Run / Preview)
+    // =============================================
+
+    /**
+     * GET /api/mikms/package-simulate?program_code=MLK&package_qty=5
+     * Preview kebutuhan tanpa mengubah stok.
+     */
+    public function packageSimulate(Request $request)
+    {
+        $request->validate([
+            'program_code' => 'required|string|in:MLK,ROBOTIC',
+            'package_qty' => 'required|integer|min:1|max:100',
+        ]);
+
+        $programCode = strtoupper($request->program_code);
+        $packageQty = (int) $request->package_qty;
+        $programs = $this->getProgramModules();
+        $program = $programs[$programCode];
+
+        // 1. Get required modules and their current ready stock
+        $modulesBreakdown = [];
+        $rawMaterialsNeeded = [];
+        $canFulfill = true;
+        $shortages = [];
+        $totalModulesFromStock = 0;
+        $totalModulesToAssemble = 0;
+
+        foreach ($program['modules'] as $moduleCode) {
+            $module = MikmsModule::where('code', $moduleCode)->first();
+            if (!$module) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Modul {$moduleCode} tidak ditemukan di database.",
+                ], 404);
+            }
+
+            // Check ready module stock
+            $moduleStock = MikmsModuleStock::where('module_id', $module->id)->first();
+            $readyStock = $moduleStock ? $moduleStock->stock_ready : 0;
+
+            // Calculate: how many from stock vs how many need assembly
+            $fromStock = min($readyStock, $packageQty);
+            $toAssemble = $packageQty - $fromStock;
+
+            $totalModulesFromStock += $fromStock;
+            $totalModulesToAssemble += $toAssemble;
+
+            $modulesBreakdown[] = [
+                'module_id' => $module->id,
+                'code' => $module->code,
+                'name' => $module->name,
+                'needed' => $packageQty,
+                'ready_stock' => $readyStock,
+                'from_stock' => $fromStock,
+                'to_assemble' => $toAssemble,
+            ];
+
+            // If we need to assemble, calculate raw materials needed
+            if ($toAssemble > 0) {
+                $boms = MikmsBom::where('module_id', $module->id)->with('item')->get();
+                foreach ($boms as $bom) {
+                    $rawNeeded = $bom->quantity * $toAssemble;
+                    $itemId = $bom->item_id;
+
+                    if (isset($rawMaterialsNeeded[$itemId])) {
+                        $rawMaterialsNeeded[$itemId]['needed'] += $rawNeeded;
+                    } else {
+                        $item = $bom->item;
+                        $rawMaterialsNeeded[$itemId] = [
+                            'item_id' => $itemId,
+                            'code' => $item ? $item->kode : '?',
+                            'name' => $item ? $item->nama : '?',
+                            'unit' => $item ? $item->satuan : 'pcs',
+                            'needed' => $rawNeeded,
+                            'available' => $item ? $item->stok : 0,
+                            'sufficient' => true,
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 2. Check raw material sufficiency
+        foreach ($rawMaterialsNeeded as &$raw) {
+            if ($raw['available'] < $raw['needed']) {
+                $raw['sufficient'] = false;
+                $canFulfill = false;
+                $shortages[] = [
+                    'code' => $raw['code'],
+                    'name' => $raw['name'],
+                    'needed' => $raw['needed'],
+                    'available' => $raw['available'],
+                    'shortage' => $raw['needed'] - $raw['available'],
+                    'unit' => $raw['unit'],
+                ];
+            }
+        }
+        unset($raw);
+
+        // 3. Build summary
+        $summaryParts = [];
+        $summaryParts[] = "{$packageQty} paket {$program['name']}";
+        if ($totalModulesFromStock > 0) {
+            $summaryParts[] = "{$totalModulesFromStock} modul diambil dari rak";
+        }
+        if ($totalModulesToAssemble > 0) {
+            $summaryParts[] = "{$totalModulesToAssemble} modul perlu dirakit dari bahan baku";
+        }
+        if ($canFulfill) {
+            $summary = implode('. ', $summaryParts) . '. ✅ Dapat dipenuhi.';
+        } else {
+            $summary = implode('. ', $summaryParts) . '. ❌ Bahan baku tidak mencukupi!';
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'program_code' => $programCode,
+                'program_name' => $program['name'],
+                'package_qty' => $packageQty,
+                'total_components_per_package' => $program['total_pcs'],
+                'modules_breakdown' => $modulesBreakdown,
+                'raw_materials_needed' => array_values($rawMaterialsNeeded),
+                'can_fulfill' => $canFulfill,
+                'shortages' => $shortages,
+                'summary' => $summary,
+                'total_modules_from_stock' => $totalModulesFromStock,
+                'total_modules_to_assemble' => $totalModulesToAssemble,
+            ],
+        ]);
+    }
+
+    // =============================================
+    // PACKAGE ORDER (Atomic Execute)
+    // =============================================
+
+    /**
+     * POST /api/mikms/package-orders
+     * Execute a package order with cascading BOM deduction.
+     */
+    public function storePackageOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'order_date' => 'required|date',
+            'program_code' => 'required|string|in:MLK,ROBOTIC',
+            'package_qty' => 'required|integer|min:1|max:100',
+            'customer_name' => 'required|string|max:150',
+            'customer_id' => 'nullable|exists:customers,id',
+            'ordered_by' => 'required|string|max:100',
+            'notes' => 'nullable|string',
+        ]);
+
+        $programCode = strtoupper($validated['program_code']);
+        $packageQty = (int) $validated['package_qty'];
+        $programs = $this->getProgramModules();
+        $program = $programs[$programCode];
+
+        DB::beginTransaction();
+        try {
+            $userId = auth()->id() ?? 1;
+            $deductionLog = [
+                'program' => $programCode,
+                'program_name' => $program['name'],
+                'package_qty' => $packageQty,
+                'timestamp' => now()->toISOString(),
+                'modules' => [],
+                'raw_materials_deducted' => [],
+            ];
+
+            foreach ($program['modules'] as $moduleCode) {
+                $module = MikmsModule::where('code', $moduleCode)->firstOrFail();
+                $moduleStock = MikmsModuleStock::where('module_id', $module->id)->lockForUpdate()->first();
+                $readyStock = $moduleStock ? $moduleStock->stock_ready : 0;
+
+                $fromStock = min($readyStock, $packageQty);
+                $toAssemble = $packageQty - $fromStock;
+
+                $moduleLog = [
+                    'code' => $moduleCode,
+                    'name' => $module->name,
+                    'needed' => $packageQty,
+                    'from_ready_stock' => $fromStock,
+                    'assembled_from_raw' => $toAssemble,
+                ];
+
+                // TIER 1: Deduct from ready module stock
+                if ($fromStock > 0 && $moduleStock) {
+                    $stockBefore = $moduleStock->stock_ready;
+                    $moduleStock->stock_ready -= $fromStock;
+                    $moduleStock->save();
+
+                    MikmsModuleStockLog::create([
+                        'module_id' => $module->id,
+                        'type' => 'package_out',
+                        'quantity' => -$fromStock,
+                        'stock_before' => $stockBefore,
+                        'stock_after' => $moduleStock->stock_ready,
+                        'reference_type' => 'mikms_package_orders',
+                        'performed_by' => $validated['ordered_by'],
+                        'notes' => "Paket {$programCode} x{$packageQty} — modul dari rak",
+                    ]);
+                }
+
+                // TIER 2: Assemble from raw materials
+                if ($toAssemble > 0) {
+                    $boms = MikmsBom::where('module_id', $module->id)->with('item')->get();
+
+                    // First pass: validate all raw materials have enough stock
+                    $shortageItems = [];
+                    foreach ($boms as $bom) {
+                        $needed = $bom->quantity * $toAssemble;
+                        $item = $bom->item;
+                        $currentStock = $item ? $item->stok : 0;
+                        if ($currentStock < $needed) {
+                            $shortageItems[] = "{$item->nama} (kurang " . ($needed - $currentStock) . " {$item->satuan})";
+                        }
+                    }
+
+                    if (!empty($shortageItems)) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "Stok bahan baku tidak cukup untuk merakit {$toAssemble}x {$moduleCode} ({$module->name}): " . implode(', ', $shortageItems),
+                            'shortages' => $shortageItems,
+                        ], 422);
+                    }
+
+                    // Second pass: deduct raw materials
+                    foreach ($boms as $bom) {
+                        $needed = $bom->quantity * $toAssemble;
+                        Transaction::create([
+                            'item_id' => $bom->item_id,
+                            'user_id' => $userId,
+                            'tipe' => 'keluar',
+                            'qty' => $needed,
+                            'transaction_date' => $validated['order_date'],
+                            'catatan' => "Paket {$programCode} x{$packageQty}: Rakit {$moduleCode} x{$toAssemble}",
+                            'lokasi' => 'Gudang Utama',
+                        ]);
+
+                        $item = $bom->item;
+                        $deductionLog['raw_materials_deducted'][] = [
+                            'item_code' => $item ? $item->kode : '?',
+                            'item_name' => $item ? $item->nama : '?',
+                            'qty_deducted' => $needed,
+                            'for_module' => $moduleCode,
+                        ];
+                    }
+
+                    // Record auto-production for assembled modules
+                    MikmsProduction::create([
+                        'production_date' => $validated['order_date'],
+                        'module_id' => $module->id,
+                        'quantity_produced' => $toAssemble,
+                        'produced_by' => $validated['ordered_by'],
+                        'notes' => "Auto-assembly dari Package Order {$programCode} x{$packageQty}",
+                    ]);
+                }
+
+                $deductionLog['modules'][] = $moduleLog;
+            }
+
+            // Save the package order
+            $order = MikmsPackageOrder::create([
+                'order_date' => $validated['order_date'],
+                'program_code' => $programCode,
+                'program_name' => $program['name'],
+                'package_qty' => $packageQty,
+                'customer_id' => $validated['customer_id'] ?? null,
+                'customer_name' => $validated['customer_name'],
+                'status' => 'COMPLETED',
+                'deduction_log' => $deductionLog,
+                'ordered_by' => $validated['ordered_by'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Pesanan {$packageQty} paket {$program['name']} berhasil diproses. Stok telah dipotong.",
+                'data' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memproses pesanan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // =============================================
+    // MODULE STOCK MANAGEMENT
+    // =============================================
+
+    /**
+     * GET /api/mikms/module-stocks
+     * List all module stocks.
+     */
+    public function getModuleStocks()
+    {
+        $stocks = MikmsModuleStock::with('module')->get()->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'module_id' => $s->module_id,
+                'module_code' => $s->module ? $s->module->code : '?',
+                'module_name' => $s->module ? $s->module->name : '?',
+                'stock_ready' => $s->stock_ready,
+                'updated_at' => $s->updated_at?->toDateTimeString(),
+            ];
+        });
+
+        return response()->json(['status' => 'success', 'data' => $stocks]);
+    }
+
+    /**
+     * POST /api/mikms/module-stocks/adjust
+     * Manual adjust stok modul jadi.
+     */
+    public function adjustModuleStock(Request $request)
+    {
+        $validated = $request->validate([
+            'module_id' => 'required|exists:mikms_modules,id',
+            'adjustment' => 'required|integer',
+            'reason' => 'required|string|max:255',
+            'adjusted_by' => 'required|string|max:100',
+        ]);
+
+        $moduleStock = MikmsModuleStock::firstOrCreate(
+            ['module_id' => $validated['module_id']],
+            ['stock_ready' => 0]
+        );
+
+        $stockBefore = $moduleStock->stock_ready;
+        $newStock = $stockBefore + $validated['adjustment'];
+
+        if ($newStock < 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Stok modul tidak boleh negatif. Saldo saat ini: {$stockBefore}, penyesuaian: {$validated['adjustment']}",
+            ], 422);
+        }
+
+        $moduleStock->stock_ready = $newStock;
+        $moduleStock->save();
+
+        MikmsModuleStockLog::create([
+            'module_id' => $validated['module_id'],
+            'type' => 'manual_adjust',
+            'quantity' => $validated['adjustment'],
+            'stock_before' => $stockBefore,
+            'stock_after' => $newStock,
+            'reference_type' => 'manual',
+            'performed_by' => $validated['adjusted_by'],
+            'notes' => $validated['reason'],
+        ]);
+
+        $module = MikmsModule::find($validated['module_id']);
+        return response()->json([
+            'status' => 'success',
+            'message' => "Stok modul {$module->code} ({$module->name}) disesuaikan: {$stockBefore} → {$newStock}",
+            'data' => $moduleStock,
+        ]);
+    }
+
+    /**
+     * GET /api/mikms/package-orders
+     * List all package orders.
+     */
+    public function getPackageOrders(Request $request)
+    {
+        $query = MikmsPackageOrder::query();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $orders = $query->latest()->paginate(20);
+        return response()->json(['status' => 'success', 'data' => $orders]);
+    }
 }
+
