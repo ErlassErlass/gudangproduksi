@@ -1100,6 +1100,9 @@ button, .btn, .sb-item, .pin-dot {
           <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn active bg-primary text-primary-content hover:bg-primary" data-tab="boxes" onclick="switchMikmsTab('boxes')">
             📦 Daftar Boks Kit
           </button>
+          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="bomlist" onclick="switchMikmsTab('bomlist')">
+            📑 List Komponen Kit (BOM)
+          </button>
           <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="production" onclick="switchMikmsTab('production')">
             ⚙️ Perakitan & BOM
           </button>
@@ -1147,6 +1150,131 @@ button, .btn, .sb-item, .pin-dot {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="mk-boxes-grid">
             <div class="card bg-base-100 border border-base-200 p-8 text-center text-base-content/50 col-span-full">
               Memuat data boks kit...
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: STANDAR LIST KOMPONEN KIT (BOM) ═══ -->
+        <div class="mikms-tab-content hidden" id="mk-panel-bomlist">
+          <!-- PROGRAM SELECTOR & SIMULATOR CARD -->
+          <div class="card bg-base-100 border border-base-300 shadow-sm p-6 mb-6">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-extrabold text-base text-base-content flex items-center gap-2">
+                    <span>📑</span> Standar Bill of Materials (BOM) Program Kit
+                  </h3>
+                  <span class="badge badge-primary badge-sm font-extrabold">SHEET 2 EXCEL</span>
+                </div>
+                <p class="text-xs text-base-content/60 mt-1">
+                  Struktur resmi komponen per boks dan modul sesuai kurikulum lapangan. Simulasikan kesiapan stok sebelum perakitan masal.
+                </p>
+              </div>
+
+              <!-- PROGRAM SWITCHER BUTTONS -->
+              <div class="join bg-base-200 p-1 rounded-2xl shrink-0">
+                <button class="btn btn-sm join-item font-bold text-xs mk-prog-btn active bg-primary text-primary-content hover:bg-primary" id="mk-prog-btn-microbit" onclick="switchBomProgram('microbit')">
+                  🤖 Microbit Kit (95 Pcs)
+                </button>
+                <button class="btn btn-sm join-item font-bold text-xs mk-prog-btn btn-ghost" id="mk-prog-btn-robotic" onclick="switchBomProgram('robotic')">
+                  🏎️ Robotic Explorer
+                </button>
+                <button class="btn btn-sm join-item font-bold text-xs mk-prog-btn btn-ghost" id="mk-prog-btn-finishgood" onclick="switchBomProgram('finishgood')">
+                  📦 Finish Good
+                </button>
+              </div>
+            </div>
+
+            <!-- SIMULATOR KESIAPAN PAKET -->
+            <div class="bg-gradient-to-r from-base-200/60 to-primary/5 rounded-2xl p-4 border border-base-300">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-primary text-primary-content flex items-center justify-center text-xl font-bold">🧮</div>
+                  <div>
+                    <div class="text-xs font-extrabold text-base-content">Simulator Kesiapan Perakitan Paket</div>
+                    <div class="text-[11px] text-base-content/60">Hitung kebutuhan total & cek kesiapan stok fisik gudang saat ini</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                  <div class="flex items-center gap-2 bg-base-100 px-3 py-1.5 rounded-xl border border-base-300">
+                    <span class="text-xs font-bold text-base-content/70">Rencana Paket:</span>
+                    <input type="number" id="mk-sim-package-qty" min="1" max="500" value="1" 
+                      class="input input-bordered input-xs font-mono font-extrabold w-16 text-center" 
+                      oninput="renderBomListTable()">
+                    <span class="text-xs font-semibold text-base-content/50">Paket</span>
+                  </div>
+                  <button class="btn btn-xs btn-outline font-bold" onclick="exportMikmsExcel()">
+                    📥 Unduh Excel Sheet
+                  </button>
+                </div>
+              </div>
+
+              <!-- STATS BADGES -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-3 border-t border-base-300/50">
+                <div class="bg-base-100 p-2.5 rounded-xl border border-base-200">
+                  <div class="text-[10px] font-bold text-base-content/50 uppercase">Item per Paket</div>
+                  <div class="text-base font-extrabold text-base-content" id="mk-sim-items-per-pkg">95 Pcs</div>
+                </div>
+                <div class="bg-base-100 p-2.5 rounded-xl border border-base-200">
+                  <div class="text-[10px] font-bold text-base-content/50 uppercase">Total Kebutuhan</div>
+                  <div class="text-base font-extrabold text-primary" id="mk-sim-total-needed">95 Pcs</div>
+                </div>
+                <div class="bg-base-100 p-2.5 rounded-xl border border-base-200">
+                  <div class="text-[10px] font-bold text-base-content/50 uppercase">Maks. Paket Siap Rakit</div>
+                  <div class="text-base font-extrabold text-success" id="mk-sim-max-possible">0 Paket</div>
+                </div>
+                <div class="bg-base-100 p-2.5 rounded-xl border border-base-200">
+                  <div class="text-[10px] font-bold text-base-content/50 uppercase">Bottleneck (Part Terkecil)</div>
+                  <div class="text-xs font-extrabold text-error truncate" id="mk-sim-bottleneck">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLE CARD -->
+          <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-sm uppercase tracking-wider text-base-content/70" id="mk-bom-table-title">Daftar Komponen: MICROBIT LEARNING KIT</span>
+                <span class="badge badge-sm badge-neutral font-mono font-bold" id="mk-bom-table-badge">22 Komponen</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="text" id="mk-bom-search" class="input input-bordered input-sm font-semibold w-full sm:w-60" placeholder="Cari komponen / modul..." oninput="renderBomListTable()">
+              </div>
+            </div>
+
+            <div class="overflow-x-auto border border-base-200 rounded-xl max-h-[600px]">
+              <table class="table table-xs table-zebra table-pin-rows w-full">
+                <thead class="bg-base-200">
+                  <tr>
+                    <th class="w-10 text-center">No</th>
+                    <th>Box / Kategori</th>
+                    <th>Modul</th>
+                    <th>Nama Komponen</th>
+                    <th class="text-center">Jumlah / Pkt</th>
+                    <th class="text-center">Satuan</th>
+                    <th class="text-center">Total Butuh</th>
+                    <th class="text-center">Stok Gudang</th>
+                    <th class="text-center">Status Kesiapan</th>
+                  </tr>
+                </thead>
+                <tbody id="mk-bomlist-tbody">
+                  <tr><td colspan="9" class="text-center py-8 text-base-content/40">Memuat rincian BOM...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- FOOTER SUMMARY -->
+            <div class="mt-4 p-4 rounded-xl bg-base-200/50 flex flex-col sm:flex-row justify-between items-center gap-3">
+              <div class="text-xs text-base-content/70">
+                Data terintegrasi real-time dengan <strong>MIKMS_Form_Lapangan.xlsx (Sheet: List Komponen)</strong>.
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="btn btn-sm btn-primary font-bold text-xs" onclick="switchMikmsTab('production')">
+                  ⚙️ Buka Form Perakitan Modul
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -4483,6 +4611,7 @@ function switchMikmsTab(tab) {
   if (target) target.classList.remove('hidden');
 
   if (tab === 'boxes') renderMikmsBoxes();
+  if (tab === 'bomlist') renderBomListTable();
   if (tab === 'production') renderMikmsProductionTab();
   if (tab === 'qc') renderMikmsQcTab();
   if (tab === 'shipment') renderMikmsShipmentTab();
@@ -4491,6 +4620,177 @@ function switchMikmsTab(tab) {
   if (tab === 'opname') renderMikmsOpnameTable();
   if (tab === 'logs') renderMikmsLogsTable();
 }
+
+/* ── STANDAR BOM & LIST KOMPONEN DATA (SHEET 2) ── */
+const BOMS_DATA = {
+  microbit: [
+    { no: 1, box: 'BOX 1 – Beginner Kit', mod: 'M01 - Controller Kit', code: 'CT-001', name: 'Micro:bit V2', qty: 1, unit: 'Pcs' },
+    { no: 2, box: 'BOX 1 – Beginner Kit', mod: 'M01 - Controller Kit', code: 'CT-003', name: 'Kabel Micro USB', qty: 1, unit: 'Pcs' },
+    { no: 3, box: 'BOX 1 – Beginner Kit', mod: 'M01 - Controller Kit', code: 'CT-002', name: 'Kabel Micro Type-C', qty: 1, unit: 'Pcs' },
+    { no: 4, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'OP-001', name: 'LED Merah', qty: 4, unit: 'Pcs' },
+    { no: 5, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'OP-003', name: 'LED Hijau', qty: 4, unit: 'Pcs' },
+    { no: 6, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'OP-002', name: 'LED Kuning', qty: 4, unit: 'Pcs' },
+    { no: 7, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'CN-006', name: 'Resistor', qty: 12, unit: 'Pcs' },
+    { no: 8, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-001', name: 'Breadboard Mini (170 TP)', qty: 1, unit: 'Pcs' },
+    { no: 9, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-007', name: 'Blok Konektor', qty: 2, unit: 'Pcs' },
+    { no: 10, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-005', name: 'Kabel Alligator', qty: 10, unit: 'Pcs' },
+    { no: 11, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-002', name: 'Kabel Jumper Male to Male', qty: 20, unit: 'Pcs' },
+    { no: 12, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-004', name: 'Kabel Jumper Male to Female', qty: 10, unit: 'Pcs' },
+    { no: 13, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-003', name: 'Kabel Jumper Female to Female', qty: 10, unit: 'Pcs' },
+    { no: 14, box: 'BOX 2 – Supporting Equipment', mod: 'M03 - Motion Kit', code: 'MT-001', name: 'Servo 180°', qty: 2, unit: 'Pcs' },
+    { no: 15, box: 'BOX 2 – Supporting Equipment', mod: 'M03 - Motion Kit', code: 'MT-002', name: 'Servo 360°', qty: 2, unit: 'Pcs' },
+    { no: 16, box: 'BOX 2 – Supporting Equipment', mod: 'M03 - Motion Kit', code: 'MT-003', name: 'Servo MG996R', qty: 1, unit: 'Pcs' },
+    { no: 17, box: 'BOX 2 – Supporting Equipment', mod: 'M04 - Sensor Kit', code: 'SN-001', name: 'Sensor Ultrasonik', qty: 1, unit: 'Pcs' },
+    { no: 18, box: 'BOX 2 – Supporting Equipment', mod: 'M05 - Power Kit', code: 'PW-002', name: 'Battery Holder', qty: 1, unit: 'Pcs' },
+    { no: 19, box: 'BOX 2 – Supporting Equipment', mod: 'M05 - Power Kit', code: 'PW-001', name: 'Baterai AAA', qty: 4, unit: 'Pcs' },
+    { no: 20, box: 'BOX 3 – Bricks', mod: 'M06 - Mechanical Kit', code: 'MC-004', name: 'Lego (150 gr)', qty: 1, unit: 'Paket' },
+    { no: 21, box: 'BOX 3 – Bricks', mod: 'M06 - Mechanical Kit', code: 'MC-003', name: 'Separator', qty: 1, unit: 'Pcs' },
+    { no: 22, box: 'BOX 3 – Bricks', mod: 'M06 - Mechanical Kit', code: 'MC-005', name: 'Papan Lego / Base Plate', qty: 2, unit: 'Pcs' },
+  ],
+  robotic: [
+    { no: 1, box: 'BOX 1 – Beginner Kit', mod: 'M01 - Controller Kit', code: 'CT-001', name: 'Micro:bit V2', qty: 1, unit: 'Pcs' },
+    { no: 2, box: 'BOX 1 – Beginner Kit', mod: 'M01 - Controller Kit', code: 'CT-003', name: 'Kabel Micro USB', qty: 1, unit: 'Pcs' },
+    { no: 3, box: 'BOX 1 – Beginner Kit', mod: 'M01 - Controller Kit', code: 'CT-002', name: 'Kabel Micro Type-C', qty: 1, unit: 'Pcs' },
+    { no: 4, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'OP-001', name: 'LED Merah', qty: 4, unit: 'Pcs' },
+    { no: 5, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'OP-003', name: 'LED Hijau', qty: 4, unit: 'Pcs' },
+    { no: 6, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'OP-002', name: 'LED Kuning', qty: 4, unit: 'Pcs' },
+    { no: 7, box: 'BOX 1 – Beginner Kit', mod: 'M02 - LED Kit', code: 'CN-006', name: 'Resistor', qty: 12, unit: 'Pcs' },
+    { no: 8, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-001', name: 'Breadboard Mini (170 TP)', qty: 1, unit: 'Pcs' },
+    { no: 9, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-007', name: 'Blok Konektor', qty: 2, unit: 'Pcs' },
+    { no: 10, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-005', name: 'Kabel Alligator', qty: 10, unit: 'Pcs' },
+    { no: 11, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-002', name: 'Kabel Jumper Male to Male', qty: 20, unit: 'Pcs' },
+    { no: 12, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-004', name: 'Kabel Jumper Male to Female', qty: 10, unit: 'Pcs' },
+    { no: 13, box: 'BOX 1 – Beginner Kit', mod: 'M07 - Connection Kit', code: 'CN-003', name: 'Kabel Jumper Female to Female', qty: 10, unit: 'Pcs' },
+    { no: 14, box: 'Jimu Trackbot', mod: 'JM01 - Jimu', code: 'RJ01', name: 'Jimu Trackbot', qty: 1, unit: 'Pcs' },
+  ],
+  finishgood: [
+    { no: 1, box: 'Finish Good Kit', mod: 'Finish Good', code: 'RJ01', name: 'Jimu Trackbot', qty: 1, unit: 'Unit' },
+    { no: 2, box: 'Finish Good Kit', mod: 'Finish Good', code: 'ERB01', name: 'Erboblox', qty: 1, unit: 'Unit' },
+    { no: 3, box: 'Finish Good Kit', mod: 'Finish Good', code: 'ALK01', name: 'Arduino Learning Kit', qty: 1, unit: 'Pcs' },
+  ]
+};
+
+let currentBomProgram = 'microbit';
+
+function switchBomProgram(prog) {
+  currentBomProgram = prog;
+  document.querySelectorAll('.mk-prog-btn').forEach(btn => {
+    btn.classList.remove('active', 'bg-primary', 'text-primary-content');
+    btn.classList.add('btn-ghost');
+  });
+  const activeBtn = document.getElementById('mk-prog-btn-' + prog);
+  if (activeBtn) {
+    activeBtn.classList.add('active', 'bg-primary', 'text-primary-content');
+    activeBtn.classList.remove('btn-ghost');
+  }
+  renderBomListTable();
+}
+
+function renderBomListTable() {
+  const q = (document.getElementById('mk-bom-search')?.value || '').toLowerCase();
+  const list = BOMS_DATA[currentBomProgram] || [];
+  const multiplier = Math.max(1, parseInt(document.getElementById('mk-sim-package-qty')?.value || '1', 10));
+
+  // Update titles
+  const titleEl = document.getElementById('mk-bom-table-title');
+  const badgeEl = document.getElementById('mk-bom-table-badge');
+  if (currentBomProgram === 'microbit') {
+    if (titleEl) titleEl.textContent = 'Daftar Komponen: MICROBIT LEARNING KIT';
+    if (badgeEl) badgeEl.textContent = '22 Komponen (95 Pcs/Paket)';
+  } else if (currentBomProgram === 'robotic') {
+    if (titleEl) titleEl.textContent = 'Daftar Komponen: ROBOTIC EXPLORER';
+    if (badgeEl) badgeEl.textContent = '14 Komponen (81 Pcs/Paket)';
+  } else {
+    if (titleEl) titleEl.textContent = 'Daftar Komponen: FINISH GOOD';
+    if (badgeEl) badgeEl.textContent = '3 Produk Siap Pakai';
+  }
+
+  // Calculate totals and bottleneck
+  const totalPcsPerPkg = list.reduce((sum, item) => sum + item.qty, 0);
+  const totalNeededAll = totalPcsPerPkg * multiplier;
+
+  let minPossible = 999999;
+  let bottleneckItem = null;
+
+  const itemsWithStock = list.map(row => {
+    const stockItem = (typeof master !== 'undefined' ? master : []).find(m => 
+      (m.kode && m.kode.toLowerCase() === row.code.toLowerCase()) ||
+      (m.nama && m.nama.toLowerCase().includes(row.name.toLowerCase()))
+    );
+    const currentStock = stockItem ? (stockItem.stok || 0) : 0;
+    const possibleForThis = Math.floor(currentStock / row.qty);
+    if (possibleForThis < minPossible) {
+      minPossible = possibleForThis;
+      bottleneckItem = { name: row.name, stock: currentStock, neededPerPkg: row.qty };
+    }
+    return { ...row, currentStock };
+  });
+
+  if (minPossible === 999999) minPossible = 0;
+
+  // Update simulator badges
+  const itemsPerPkgEl = document.getElementById('mk-sim-items-per-pkg');
+  const totalNeededEl = document.getElementById('mk-sim-total-needed');
+  const maxPossibleEl = document.getElementById('mk-sim-max-possible');
+  const bottleneckEl = document.getElementById('mk-sim-bottleneck');
+
+  if (itemsPerPkgEl) itemsPerPkgEl.textContent = `${totalPcsPerPkg} Pcs`;
+  if (totalNeededEl) totalNeededEl.textContent = `${totalNeededAll} Pcs (${multiplier} Paket)`;
+  if (maxPossibleEl) maxPossibleEl.textContent = `${minPossible} Paket`;
+  if (bottleneckEl) {
+    bottleneckEl.textContent = bottleneckItem ? `${bottleneckItem.name} (Stok: ${bottleneckItem.stock})` : 'Semua Cukup';
+  }
+
+  // Filter
+  const filtered = itemsWithStock.filter(row => {
+    return !q || row.name.toLowerCase().includes(q) || 
+      row.mod.toLowerCase().includes(q) || 
+      row.box.toLowerCase().includes(q) || 
+      row.code.toLowerCase().includes(q);
+  });
+
+  const tbody = document.getElementById('mk-bomlist-tbody');
+  if (!tbody) return;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-base-content/40">Tidak ada komponen yang cocok dengan pencarian</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const needed = r.qty * multiplier;
+    const isSufficient = r.currentStock >= needed;
+    const diff = r.currentStock - needed;
+
+    let boxBadgeClass = 'badge-primary text-primary-content';
+    if (r.box.includes('BOX 2')) boxBadgeClass = 'badge-accent text-accent-content';
+    if (r.box.includes('BOX 3')) boxBadgeClass = 'badge-warning text-warning-content font-bold';
+
+    return `
+      <tr>
+        <td class="text-center font-mono font-bold text-base-content/50">${r.no}</td>
+        <td><span class="badge badge-xs ${boxBadgeClass}">${escHtml(r.box)}</span></td>
+        <td class="font-mono text-[11px] font-bold text-base-content/80">${escHtml(r.mod)}</td>
+        <td>
+          <div class="font-bold text-base-content">${escHtml(r.name)}</div>
+          <div class="font-mono text-[10px] text-base-content/40">${escHtml(r.code)}</div>
+        </td>
+        <td class="text-center font-mono font-bold">${r.qty}</td>
+        <td class="text-center text-xs font-semibold text-base-content/60">${escHtml(r.unit)}</td>
+        <td class="text-center font-mono font-extrabold text-primary">${needed}</td>
+        <td class="text-center font-mono font-bold ${r.currentStock <= 0 ? 'text-error' : 'text-base-content'}">${r.currentStock}</td>
+        <td class="text-center">
+          ${isSufficient ? `
+            <span class="badge badge-xs badge-success font-bold text-white">✅ CUKUP (+${diff})</span>
+          ` : `
+            <span class="badge badge-xs badge-error font-bold text-white">⚠️ KURANG (${Math.abs(diff)})</span>
+          `}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
 
 async function loadMikmsPage() {
   try {
