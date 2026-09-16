@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('pin', 6)->nullable()->after('password')->comment('6-digit PIN for mobile login');
+            $table->enum('role', ['admin', 'petugas'])->default('petugas')->after('pin');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['pin', 'role']);
+        });
+    }
+};
