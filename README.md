@@ -1,228 +1,225 @@
-# 📦 ErlassGudangApp — Warehouse Management System
+# 📦 ErlassGudangApp — Warehouse Management System (v3.5)
 
-ErlassGudangApp adalah aplikasi **Progressive Web App (PWA)** berbasis **Laravel 12 API** (Backend) dan **Single-Page Application** (Frontend) untuk manajemen inventaris multi-gudang. Dibangun untuk **Erlass Institute** dengan desain **desktop-first dashboard** yang modern dan premium.
+ErlassGudangApp adalah sistem manajemen gudang dan inventaris cerdas berbasis **Progressive Web App (PWA)** dengan backend **Laravel 12 API** dan frontend **Single-Page Application (SPA)** responsif berkinerja tinggi. 
 
-> **Live**: [https://gudang.erlass.institute](https://gudang.erlass.institute)
+Dirancang khusus untuk **Erlass Institute**, aplikasi ini mengintegrasikan seluruh siklus hidup barang mulai dari barang mentah (*raw material*), perakitan modul (*Work in Process / MIKMS*), pesanan paket kit bertingkat (*Cascading BOM*), sirkulasi peminjaman/sewa ke sekolah (*Serialized Asset Tracking*), hingga pencatatan kartu stok dan pelaporan audit.
+
+> 🌐 **Aplikasi Live**: [https://gudang.erlass.institute](https://gudang.erlass.institute)
+
+---
+
+## 🧭 Alur Kerja Terpadu (Unified Pipeline)
+
+Aplikasi menerapkan arsitektur navigasi **Unified Pipeline** yang menyelaraskan alur kerja tim lapangan dan administrasi gudang dalam satu garis aktivitas logis:
+
+```
+[Barang Masuk] ──▶ [Produksi & Modul] ──▶ [Pesanan & Keluar] ──▶ [Sirkulasi / Sewa] ──▶ [Stok & Laporan]
+  Scan & Input      Perakitan BOM (M01-M10)   Paket Kit (Cascading)   Boks Kit di Sekolah       Katalog Stok Terpadu
+  Supplier / Vendor QC Modul & Boks           Surat Jalan Kirim       Retur & Repair            Kartu Stok & Opname
+```
 
 ---
 
 ## 🚀 Fitur Utama
 
-| # | Fitur | Deskripsi |
-|---|-------|-----------|
-| 1 | **📊 Dashboard Desktop** | Dashboard dengan statistik real-time, grafik tren 30 hari (Chart.js), dan distribusi per gudang |
-| 2 | **📷 Scan QR Code** | Pemindaian kode barang via kamera menggunakan `jsQR`, dengan auto-fill form |
-| 3 | **🔄 Offline Sync** | Transaksi tersimpan di `localStorage`, otomatis sinkronisasi saat online |
-| 4 | **🏢 Multi-Warehouse** | Mendukung 3 gudang: Gudang Utama, Gudang Raw Material, Gudang Work in Process |
-| 5 | **📄 Kartu Stok PDF** | Kartu stok periodik per barang per tahun, dengan saldo awal otomatis |
-| 6 | **📥 Excel Export** | Ekspor seluruh log transaksi dan stok ke file `.xlsx` |
-| 7 | **🖨️ Cetak QR Stiker** | Print label QR (satuan atau antrean massal) langsung dari browser dengan presisi kertas kiri atas |
-| 8 | **🔐 Role-Based Access** | Pemisahan hak akses Admin vs Petugas Lapangan |
-| 9 | **⬇️ PWA Install** | Tombol install aplikasi untuk akses native-like di desktop/mobile |
+| Modul / Fitur | Deskripsi Teknis |
+|:---|:---|
+| **📊 Dashboard Terpadu** | Ringkasan statistik real-time gudang reguler, widget live MIKMS (Total Boks, Modul Jadi Siap, Pesanan Bulan Ini, Unit di Lapangan), grafik mutasi 30 hari (Chart.js), dan shortcut aksi cepat mobile. |
+| **📷 Scan QR & Barcode** | Pemindaian kode barang otomatis via kamera web/mobile menggunakan engine `jsQR` berpresisi tinggi dengan deteksi auto-fill instan ke formulir transaksi. |
+| **⚙️ Perakitan Modul MIKMS (BOM)** | Pengelolaan perakitan modul elektronik (M01 Controller, M02 LED, M03 Motion, M07 Connection, dsb) berbasis standar Bill of Materials (BOM) dengan pengurangan otomatis stok komponen bahan mentah. |
+| **📦 Cascading Multi-Level BOM** | Otomasi pesanan paket kit utuh (misal: 5 Microbit Learning Kit / MLK): sistem memprioritaskan pengurangan stok modul jadi yang siap pakai (`mikms_module_stocks`), dan secara otomatis mem-breakdown modul yang belum dirakit ke komponen dasar (*raw materials*). |
+| **✅ Quality Control (QC)** | Pencatatan verifikasi kelayakan modul pasca-produksi sebelum dimasukkan ke dalam boks kit siap distribusi sekolah. |
+| **🚚 Distribusi & Sirkulasi Sekolah** | Surat jalan pengiriman boks kit ke sekolah/mitra (`mikms_shipments`), pencatatan pengembalian/retur (`mikms_returns`), serta pencatatan boks kit bermasalah ke antrean reparasi (`mikms_repairs`). |
+| **🔄 Modul Sewa & Unit Bekas** | Pelacakan unit asset terserialisasi (*Serialized Asset Tracking*) dengan riwayat mutasi antar-lokasi, peminjaman/sewa keluar (*rent-out*), pengembalian (*rent-return*), dan kartu riwayat unit individu. |
+| **🏢 Multi-Warehouse Management** | Manajemen multi-gudang (Gudang Utama, Gudang Bahan Baku / Raw Material, Gudang Modul Jadi / WIP, Gudang Sewa & Lapangan). |
+| **📄 Kartu Stok Terpadu & Audit** | Rekap kartu stok running-balance per item per gudang per tahun, pencatatan stock opname fisik, serta ekspor laporan PDF (`barryvdh/laravel-dompdf`) dan Excel (`maatwebsite/laravel-excel`). |
+| **🖨️ Cetak QR Stiker Presisi** | Generator label QR stiker (satuan atau antrean cetak massal) siap cetak langsung dari browser dengan format tata letak kiri-atas ramah printer thermal/kertas stiker. |
+| **📶 Offline Sync & PWA** | Menggunakan Web Service Worker (`sw.js`) dan antrean transaksi lokal (`localStorage`) untuk memungkinkan pencatatan mutasi di area minim sinyal dengan sinkronisasi otomatis saat online kembali. |
 
 ---
 
 ## 🔑 Hak Akses & Akun Bawaan
 
-Sistem mendukung login menggunakan **PIN 6 digit** (untuk di lapangan/tablet) maupun **Email & Password**. 
+Sistem mendukung autentikasi menggunakan **NIK Karyawan & Kata Sandi** serta opsi cepat **PIN 6 digit**.
 
-| Jabatan | PIN | Email | Password | Menu & Fitur | CRUD Master |
-|---------|-----|-------|----------|--------------|-------------|
-| **Petugas Lapangan** | `000000` | `gudang@erlass.institute` | `password` | Dashboard, Scan, Stok, Transaksi, Kartu Stok, Print QR | ❌ HTTP 403 |
-| **Admin / Back Office** | `123456` | `admin@erlass.institute` | `password` | Semua menu + **Master Barang** | ✅ Tambah, Edit, Hapus |
+| Peran (Role) | NIK | Kata Sandi | PIN | Cakupan Hak Akses |
+|:---|:---|:---|:---|:---|
+| **Petugas Lapangan** | `12345` | `password` | `000000` | Dashboard, Scan Masuk, Perakitan Modul, QC, Pesan Paket, Pengiriman Sekolah, Retur, Repair, Opname, Stok, Transaksi, Cetak QR |
+| **Administrator** | `admin` | `password` | `123456` | Seluruh fitur operasional lapangan + **Manajemen Master** (Barang, Lokasi, Vendor, Customer, Kategori, User Management) |
 
-> [!IMPORTANT]
-> Akun **`webmaster@erlass.institute`** hanya tersedia di aplikasi utama (**webapperlass**) dan **tidak terdaftar** secara default di sistem Gudang (GudangScan). Gunakan salah satu akun di atas untuk login ke GudangScan.
+> [!NOTE]
+> Akun `webmaster@erlass.institute` diperuntukkan khusus bagi aplikasi portal utama (`webapperlass`) dan tidak digunakan di ErlassGudangApp.
 
 ---
 
 ## 🏗️ Arsitektur Sistem
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                    BROWSER (PWA)                           │
-│  ┌─────────┐  ┌───────────┐  ┌──────────┐  ┌──────────┐  │
-│  │Dashboard│  │  Scanner  │  │  Tables  │  │  Charts  │  │
-│  │ (stats) │  │  (jsQR)   │  │  (data)  │  │(Chart.js)│  │
-│  └────┬────┘  └─────┬─────┘  └────┬─────┘  └────┬─────┘  │
-│       │             │             │              │         │
-│  ┌────▼─────────────▼─────────────▼──────────────▼─────┐  │
-│  │            localStorage (offline queue)              │  │
-│  └──────────────────────┬──────────────────────────────┘  │
-│                         │ sync                            │
-│  ┌──────────────────────▼──────────────────────────────┐  │
-│  │           Service Worker (sw.js)                     │  │
-│  │     Cache: network-first + offline fallback          │  │
-│  └──────────────────────┬──────────────────────────────┘  │
-└─────────────────────────┼──────────────────────────────────┘
-                          │ HTTPS
-┌─────────────────────────▼──────────────────────────────────┐
-│                    NGINX + SSL                             │
-│              gudang.erlass.institute                       │
-└─────────────────────────┬──────────────────────────────────┘
-                          │
-┌─────────────────────────▼──────────────────────────────────┐
-│                   LARAVEL 12 API                           │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ QueryTokenMiddleware (global)                        │  │
-│  │   → ?token=xxx → Authorization: Bearer xxx           │  │
-│  └──────────────────────┬───────────────────────────────┘  │
-│  ┌──────────────────────▼───────────────────────────────┐  │
-│  │ Sanctum Auth (auth:sanctum middleware)                │  │
-│  └──────────────────────┬───────────────────────────────┘  │
-│  ┌──────────────────────▼───────────────────────────────┐  │
-│  │ Controllers: Auth, Item, Transaction, Stock, Export   │  │
-│  └──────────────────────┬───────────────────────────────┘  │
-│  ┌──────────────────────▼───────────────────────────────┐  │
-│  │ Models: User, Item, Transaction                       │  │
-│  │   → Item.stok = computed (sum masuk - sum keluar)     │  │
-│  │   → Item.getKartuStok(year, gudang) → running balance │  │
-│  └──────────────────────┬───────────────────────────────┘  │
-└─────────────────────────┼──────────────────────────────────┘
-                          │
-┌─────────────────────────▼──────────────────────────────────┐
-│               MySQL (gudangscan_db)                        │
-│  ┌──────┐  ┌───────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │users │  │ items │  │ transactions │  │personal_     │  │
-│  │      │  │       │  │              │  │access_tokens │  │
-│  └──────┘  └───────┘  └──────────────┘  └──────────────┘  │
-└────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      CLIENT LAYER (Browser PWA / SPA)                    │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────┐  │
+│  │   Dashboard   │  │   QR Scanner  │  │  Unified Nav  │  │  Offline  │  │
+│  │(Charts & Stats│  │    (jsQR)     │  │ (goPage pipe) │  │Queue Local│  │
+│  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘  └─────┬─────┘  │
+│          └──────────────────┼───────────────────┘               │        │
+│                             ▼                                   ▼        │
+│                    Service Worker (sw.js) ◀────────── Sync Handler       │
+└─────────────────────────────┼────────────────────────────────────────────┘
+                              │ HTTPS / REST JSON
+┌─────────────────────────────▼────────────────────────────────────────────┐
+│                       SERVER LAYER (NGINX + SSL)                         │
+│                    gudang.erlass.institute                               │
+└─────────────────────────────┼────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼────────────────────────────────────────────┐
+│                    LARAVEL 12 CORE ENGINE                                │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │ QueryTokenMiddleware (Global Header / ?token= injector)            │  │
+│  │ Laravel Sanctum (Bearer Token Authorization)                       │  │
+│  └──────────────────────────────────┬─────────────────────────────────┘  │
+│                                     ▼                                    │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │ API CONTROLLERS:                                                │  │
+│  │ • AuthController        • ItemController      • StockController │  │
+│  │ • TransactionController • AssetController     • ExportController│  │
+│  │ • MikmsController       • LocationController  • UserController  │  │
+│  │ • VendorController      • CustomerController  • CategoryContr.  │  │
+│  └──────────────────────────────────┬─────────────────────────────────┘  │
+│                                     ▼                                    │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │ BUSINESS SERVICES & ENGINES:                                    │  │
+│  │ • Cascading BOM Calculator & Auto-Deduction Engine              │  │
+│  │ • Running Balance Kartu Stok Generator                          │  │
+│  │ • Module Stock Transition & Serialized Asset Lifecycle State    │  │
+│  └──────────────────────────────────┬─────────────────────────────────┘  │
+└─────────────────────────────────────┼────────────────────────────────────┘
+                                      │ PDO MySQL
+┌─────────────────────────────────────▼────────────────────────────────────┐
+│                    DATABASE LAYER (MySQL 8 - gudangscan_db)              │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────────┐  │
+│  │ items           │  │ transactions     │  │ assets (serialized)     │  │
+│  │ users           │  │ categories       │  │ locations / vendors     │  │
+│  ├─────────────────┴──┴──────────────────┴──┴─────────────────────────┤  │
+│  │ MIKMS SUITE:                                                       │  │
+│  │ • mikms_modules      • mikms_bom             • mikms_boxes         │  │
+│  │ • mikms_productions  • mikms_qc_logs         • mikms_shipments     │  │
+│  │ • mikms_returns      • mikms_repairs         • mikms_stock_opnames │  │
+│  │ • mikms_module_stocks• mikms_module_stock_logs                     │  │
+│  │ • mikms_package_orders (Cascading multi-level deduction log)       │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🗄️ Skema Database
-
-### Tabel `users`
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `id` | int, PK | Auto increment |
-| `name` | varchar | Nama petugas |
-| `pin` | varchar | PIN 6 digit (plain text match) |
-| `role` | enum(`admin`, `petugas`) | Tingkat hak akses |
-| `email` | varchar, nullable | Opsional untuk login alternatif |
-
-### Tabel `items`
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `id` | int, PK | Auto increment |
-| `kode` | varchar, unique | Kode QR barang (misal: `MSJ01`) |
-| `nama` | varchar | Nama lengkap barang |
-| `satuan` | varchar | pcs, unit, set, box, lembar |
-| `produk` | varchar | Kategori produk |
-| `komponen` | varchar | Sub-kategori komponen |
-| `lokasi_default` | varchar | Lokasi default penempatan |
-| `min_stok` | int | Batas minimum sebelum warning |
-| `is_active` | boolean | Status aktif (soft delete) |
-
-### Tabel `transactions`
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `id` | int, PK | Auto increment |
-| `item_id` | int, FK→items | Relasi ke barang |
-| `tipe` | enum(`masuk`, `keluar`) | Jenis mutasi |
-| `qty` | int unsigned | Jumlah unit |
-| `transaction_date` | date | Tanggal pencatatan |
-| `lokasi` | varchar | Nama gudang |
-| `sumber` | varchar | Asal barang (untuk masuk) |
-| `penerima` | varchar | Penerima (untuk keluar) |
-| `keperluan` | varchar | Tujuan penggunaan |
-| `no_dokumen` | varchar | No. Surat Jalan |
-| `no_po` | varchar | No. Purchase Order |
-| `no_prn` | varchar | No. Purchase Requisition |
-| `job_number` | varchar | No. Job Pekerjaan |
-| `transfer_order` | varchar | No. Transfer Order |
-| `petugas` | varchar | PIC yang input |
-| `catatan` | text | Catatan tambahan |
-| `client_id` | varchar, unique | De-duplikasi offline sync |
-
----
-
-## 📂 Struktur File Penting
+## 🗂️ Struktur Direktori Proyek
 
 ```
-/root/gudangscan/  (symlink → /var/www/gudangscan)
-│
+/var/www/gudangscan/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/Api/
-│   │   │   ├── AuthController.php      ← Login PIN/Email, Logout
-│   │   │   ├── ItemController.php      ← CRUD Master Barang (admin-only)
-│   │   │   ├── TransactionController.php ← Log & Sync transaksi
-│   │   │   ├── StockController.php     ← Status stok & kartu stok
-│   │   │   └── ExportController.php    ← PDF & Excel export
+│   │   │   ├── AuthController.php          ← Login NIK/PIN, Logout
+│   │   │   ├── ItemController.php          ← CRUD Master Barang (Admin)
+│   │   │   ├── TransactionController.php   ← Transaksi masuk/keluar & sinkronisasi
+│   │   │   ├── StockController.php         ← Status stok & riwayat kartu stok
+│   │   │   ├── AssetController.php         ← Unit asset sewa, mutasi, rent out/in
+│   │   │   ├── MikmsController.php         ← MIKMS, BOM, QC, Cascading BOM, Opname
+│   │   │   ├── MikmsExportController.php   ← Ekspor Excel khusus MIKMS
+│   │   │   ├── LocationController.php      ← Master Lokasi penyimpanan
+│   │   │   ├── VendorController.php        ← Master Vendor / Supplier
+│   │   │   ├── CustomerController.php      ← Master Customer / Sekolah
+│   │   │   ├── CategoryController.php      ← Master Kategori Barang
+│   │   │   ├── UserController.php          ← CRUD Pengguna & Import Akun
+│   │   │   └── ExportController.php        ← PDF kartu stok & Ekspor Excel umum
 │   │   └── Middleware/
-│   │       └── QueryTokenMiddleware.php ← Token bypass untuk download
+│   │       └── QueryTokenMiddleware.php    ← Bypass token auth untuk download file
 │   └── Models/
-│       ├── Item.php                    ← Computed stok, kartu stok
-│       ├── Transaction.php
-│       └── User.php
+│       ├── Item.php                        ← Relasi item, computed stock, kartu stok
+│       ├── Transaction.php                 ← Log transaksi barang umum
+│       ├── Asset.php                       ← Asset unit terserialisasi
+│       ├── MikmsModule.php                 ← Master modul perakitan (M01-M10)
+│       ├── MikmsBom.php                    ← Bill of Materials modul
+│       ├── MikmsBox.php                    ← Master boks kit Micro:bit
+│       ├── MikmsProduction.php             ← Riwayat perakitan modul
+│       ├── MikmsQcLog.php                  ← Riwayat kontrol kualitas (QC)
+│       ├── MikmsShipment.php                ← Riwayat pengiriman boks ke sekolah
+│       ├── MikmsReturn.php                  ← Riwayat retur boks & komponen rusak
+│       ├── MikmsRepair.php                  ← Riwayat perbaikan barang/komponen
+│       ├── MikmsStockOpname.php            ← Pencatatan fisik stock opname MIKMS
+│       ├── MikmsModuleStock.php            ← Saldo stok modul jadi siap pakai
+│       ├── MikmsModuleStockLog.php         ← Mutasi penambahan/pengurangan modul jadi
+│       ├── MikmsPackageOrder.php           ← Pesanan paket kit (Cascading BOM)
+│       └── User.php                        ← Model pengguna dengan NIK & Role
 │
-├── bootstrap/
-│   └── app.php                         ← Global middleware registration
+├── database/
+│   └── migrations/                         ← Migrasi database lengkap
 │
 ├── resources/views/
-│   ├── app.blade.php                   ← Frontend SPA (Desktop Dashboard)
+│   ├── app.blade.php                       ← Frontend SPA tunggal (Unified Pipeline UI)
 │   └── pdf/
-│       └── kartu-stok.blade.php        ← Template PDF kartu stok
+│       └── kartu-stok.blade.php            ← Template cetak PDF kartu stok
 │
 ├── routes/
-│   ├── api.php                         ← API endpoints
-│   └── web.php                         ← Serve SPA
+│   ├── api.php                             ← Definisi REST API lengkap
+│   └── web.php                             ← Route view utama SPA
 │
 ├── public/
-│   ├── manifest.json                   ← PWA manifest
-│   ├── sw.js                           ← Service Worker
-│   └── icons/
-│       ├── icon-192.png
-│       └── icon-512.png
+│   ├── manifest.json                       ← Konfigurasi instalasi PWA
+│   ├── sw.js                               ← Service Worker offline caching
+│   └── icons/                              ← Ikon aplikasi PWA
 │
 └── docs/
-    ├── LOGIC.md                        ← Dokumentasi logika bisnis
-    ├── API.md                          ← Referensi API endpoints
-    └── DATABASE.md                     ← Skema database & tabel relasi
+    ├── LOGIC.md                            ← Dokumentasi logika bisnis & kalkulasi BOM
+    ├── API.md                              ← Spesifikasi lengkap REST API & payload
+    └── DATABASE.md                         ← ERD, tabel relasi, dan kamus data
 ```
 
 ---
 
-## ⚡ Perintah Maintenance
+## ⚡ Panduan Operasional & Maintenance Server
 
 ```bash
-cd /root/gudangscan
+# Berpindah ke direktori proyek
+cd /var/www/gudangscan
 
-# Bersihkan cache
-php artisan route:clear && php artisan config:clear && php artisan cache:clear
+# 1. Bersihkan & re-cache konfigurasi, route, dan view
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
-# Migrasi database
+# 2. Jalankan migrasi database
 php artisan migrate --force
 
-# Restart web server
+# 3. Cek status service web server & PHP-FPM
 systemctl restart nginx
+systemctl status php8.3-fpm
 ```
 
 ---
 
-## 📦 Stack Teknologi
+## 🛠️ Stack Teknologi
 
-| Layer | Teknologi |
-|-------|-----------|
-| **Backend** | Laravel 12, PHP 8.3 |
-| **Database** | MySQL 8 |
-| **Auth** | Laravel Sanctum (Personal Access Token) |
-| **Frontend** | Vanilla JS SPA (Single File Blade) |
-| **Charts** | Chart.js 4.x |
-| **QR Scan** | jsQR |
-| **QR Generate** | qrcode.js |
-| **PDF** | barryvdh/laravel-dompdf |
-| **Excel** | maatwebsite/laravel-excel |
-| **Web Server** | Nginx + Let's Encrypt SSL |
-| **PWA** | Service Worker + Web App Manifest |
+| Komponen | Teknologi yang Digunakan |
+|:---|:---|
+| **Backend Framework** | Laravel 12 (PHP 8.3) |
+| **Autentikasi** | Laravel Sanctum (Personal Access Token) |
+| **Database** | MySQL 8.0 (InnoDB Engine, UTF8MB4) |
+| **Frontend Framework** | Single File SPA (Blade + Vanilla JavaScript ES6+) |
+| **Styling & CSS** | Tailwind CSS + DaisyUI |
+| **Pemindaian QR** | jsQR |
+| **Generator QR Stiker** | qrcode.js |
+| **Grafik Dashboard** | Chart.js 4.x |
+| **Ekspor Dokumen** | `barryvdh/laravel-dompdf` & `maatwebsite/laravel-excel` |
+| **Web Server & SSL** | NGINX + Let's Encrypt SSL (HTTP/2) |
+| **PWA Engine** | Service Worker Cache-First / Network-Fallback |
 
 ---
 
-## 📚 Dokumentasi Lengkap
+## 📖 Dokumentasi Teknis Lanjutan
 
-| Dokumen | Deskripsi |
-|---------|-----------|
-| [LOGIC.md](docs/LOGIC.md) | Penjelasan alur logika bisnis, autentikasi, stok, sinkronisasi offline |
-| [API.md](docs/API.md) | Referensi lengkap seluruh API endpoint beserta contoh request/response |
+Untuk membaca dokumentasi arsitektur dan spesifikasi API secara mendalam:
+
+1. [**LOGIC.md**](docs/LOGIC.md) — Alur logika bisnis, aturan deduksi stok Cascading BOM, state machine boks kit, dan lifecycle perakitan.
+2. [**API.md**](docs/API.md) — Katalog lengkap REST API endpoints, parameter query, struktur request JSON, dan format response.
+3. [**DATABASE.md**](docs/DATABASE.md) — Entity Relationship Diagram (ERD), kamus data setiap tabel, dan constraint integritas data.

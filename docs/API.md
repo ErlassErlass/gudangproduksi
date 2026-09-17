@@ -18,7 +18,7 @@ Atau untuk download file di tab baru, gunakan query parameter:
 
 | Method | Endpoint | Auth | Role | Deskripsi |
 |--------|----------|------|------|-----------|
-| POST | `/auth/login` | ❌ | — | Login via PIN atau Email |
+| POST | `/auth/login` | ❌ | — | Login via PIN, NIK, atau Email |
 | POST | `/auth/logout` | ✅ | Semua | Logout & revoke token |
 | GET | `/items` | ✅ | Semua | List semua master barang |
 | POST | `/items` | ✅ | 🔒 Admin | Tambah barang baru |
@@ -28,8 +28,8 @@ Atau untuk download file di tab baru, gunakan query parameter:
 | GET | `/stock` | ✅ | Semua | Status stok semua barang |
 | GET | `/stock/{item_id}/card` | ✅ | Semua | Kartu stok per barang |
 | GET | `/transactions` | ✅ | Semua | Riwayat transaksi |
-| GET | `/transactions/stats` | ✅ | Semua | Statistik ringkasan |
-| POST | `/transactions` | ✅ | Semua | Simpan transaksi (single/bulk) |
+| GET | `/transactions/stats` | ✅ | Semua | Statistik ringkasan transaksi |
+| POST | `/transactions` | ✅ | Semua | Simpan transaksi (single/bulk offline) |
 | GET | `/locations` | ✅ | Semua | List semua lokasi |
 | POST | `/locations` | ✅ | Semua | Tambah lokasi baru |
 | DELETE | `/locations/{id}` | ✅ | Semua | Hapus lokasi |
@@ -43,6 +43,11 @@ Atau untuk download file di tab baru, gunakan query parameter:
 | POST | `/categories` | ✅ | Semua | Tambah kategori baru |
 | PUT | `/categories/{id}` | ✅ | Semua | Update kategori |
 | DELETE | `/categories/{id}` | ✅ | Semua | Hapus kategori |
+| GET | `/users` | ✅ | 🔒 Admin | List semua pengguna |
+| POST | `/users` | ✅ | 🔒 Admin | Tambah pengguna baru |
+| PUT | `/users/{id}` | ✅ | 🔒 Admin | Update pengguna |
+| DELETE | `/users/{id}` | ✅ | 🔒 Admin | Hapus pengguna |
+| POST | `/users/import` | ✅ | 🔒 Admin | Impor massal akun pengguna |
 | GET | `/assets` | ✅ | Semua | List unit asset terserialisasi |
 | POST | `/assets` | ✅ | Semua | Daftarkan unit asset baru |
 | POST | `/assets/mutate` | ✅ | Semua | Pindah lokasi asset |
@@ -50,10 +55,27 @@ Atau untuk download file di tab baru, gunakan query parameter:
 | POST | `/assets/rent-return` | ✅ | Semua | Terima kembali asset dari sewa |
 | POST | `/assets/{id}/status` | ✅ | Semua | Update kondisi fisik asset |
 | GET | `/assets/{id}/card` | ✅ | Semua | Riwayat transaksi satu unit asset |
-| GET | `/export/excel` | ✅ | Semua | Download Excel |
+| GET | `/mikms/dashboard` | ✅ | Semua | Statistik ringkas metrik MIKMS |
+| GET | `/mikms/modules` | ✅ | Semua | Master modul MIKMS & komponen BOM |
+| GET | `/mikms/boxes` | ✅ | Semua | List master boks kit |
+| POST | `/mikms/boxes` | ✅ | Semua | Daftarkan boks kit baru |
+| POST | `/mikms/productions` | ✅ | Semua | Form perakitan modul (auto potong raw) |
+| POST | `/mikms/qc-logs` | ✅ | Semua | Form verifikasi QC kelayakan modul |
+| POST | `/mikms/shipments` | ✅ | Semua | Form pengiriman boks ke sekolah |
+| POST | `/mikms/returns` | ✅ | Semua | Form pengembalian boks dari sekolah |
+| POST | `/mikms/repairs` | ✅ | Semua | Form perbaikan modul/komponen |
+| POST | `/mikms/stock-opnames` | ✅ | Semua | Form pencatatan stock opname MIKMS |
+| GET | `/mikms/logs` | ✅ | Semua | Riwayat transaksi dan aktivitas MIKMS |
+| GET | `/mikms/package-simulate` | ✅ | Semua | Simulasi pesanan paket (Cascading BOM) |
+| GET | `/mikms/package-orders` | ✅ | Semua | List riwayat pesanan paket kit |
+| POST | `/mikms/package-orders` | ✅ | Semua | Eksekusi pesanan paket (deduksi bertingkat) |
+| GET | `/mikms/module-stocks` | ✅ | Semua | Stok modul jadi siap pakai |
+| POST | `/mikms/module-stocks/adjust` | ✅ | Semua | Penyesuaian stok modul jadi manual |
+| GET | `/mikms/export/excel` | ✅ | Semua | Download Excel seluruh data MIKMS |
+| GET | `/export/excel` | ✅ | Semua | Download Excel transaksi reguler |
 | GET | `/export/pdf/{item_id}` | ✅ | Semua | Download PDF Kartu Stok |
 
-> 🔒 = Hanya role `admin` (untuk endpoint Items CRUD). Endpoint Master Data lainnya (locations, vendors, customers) dapat diakses oleh semua role yang terautentikasi.
+> 🔒 = Hanya role `admin` (untuk endpoint Items CRUD & Manajemen User). Endpoint Master Data lainnya (locations, vendors, customers, categories) dan operasional MIKMS dapat diakses oleh semua role yang terautentikasi.
 
 ---
 
@@ -1073,7 +1095,362 @@ Impor massal pengguna menggunakan data array (biasanya hasil parsing CSV).
 
 ---
 
-## 12. Error Responses
+## 12. Modul Lapangan MIKMS & Cascading BOM
+
+Semua endpoint MIKMS memiliki prefix `/api/mikms` dan membutuhkan token autentikasi Sanctum.
+
+### 12.1 GET `/mikms/dashboard`
+Mengambil ringkasan metrik statistik operasional boks, perakitan, pengiriman sekolah, retur, dan repair.
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "data": {
+    "stats": {
+      "total_modules": 10,
+      "total_boxes": 34,
+      "boxes_ready": 20,
+      "boxes_on_loan": 10,
+      "boxes_repair": 4,
+      "total_produced": 150,
+      "total_shipments": 12,
+      "total_returns": 8,
+      "total_repairs": 3
+    },
+    "recent_productions": [...],
+    "recent_shipments": [...],
+    "recent_returns": [...],
+    "recent_repairs": [...]
+  }
+}
+```
+
+### 12.2 GET `/mikms/modules`
+Daftar seluruh master modul perakitan beserta spesifikasi komponen Bill of Materials (BOM) dan stok komponen saat ini.
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "code": "M01",
+      "name": "Controller Kit",
+      "description": "Micro:bit V2 Controller dan kabel power/koneksi",
+      "components": [
+        {
+          "id": 1,
+          "item_id": 10,
+          "item_code": "CT-001",
+          "item_name": "Micro:bit V2",
+          "item_unit": "Pcs",
+          "quantity_per_module": 1,
+          "box_category": "BOX 1 – Beginner Kit",
+          "current_stock": 25
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 12.3 GET `/mikms/boxes` & POST `/mikms/boxes`
+Mengelola master boks kit Micro:bit.
+
+**Filter Query GET**: `status` (READY, ON_LOAN, REPAIR, DAMAGED), `search` (kode/kategori/program).
+
+**POST Request (Tambah Boks)**:
+```json
+{
+  "box_code": "BOX-MLK-001",
+  "category": "BOX 1 – Beginner Kit",
+  "program_code": "MLK",
+  "status": "READY",
+  "notes": "Kit pemula lengkap"
+}
+```
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "message": "Box Kit berhasil ditambahkan",
+  "data": {
+    "id": 1,
+    "box_code": "BOX-MLK-001",
+    "category": "BOX 1 – Beginner Kit",
+    "program_code": "MLK",
+    "status": "READY",
+    "notes": "Kit pemula lengkap"
+  }
+}
+```
+
+### 12.4 POST `/mikms/productions`
+Mencatat hasil perakitan modul. **Sistem secara otomatis memeriksa stok dan memotong komponen bahan mentah di tabel transaksi umum (`transactions`).**
+
+**Request**:
+```json
+{
+  "production_date": "2026-09-17",
+  "module_id": 1,
+  "quantity_produced": 5,
+  "produced_by": "Ahmad Petugas",
+  "notes": "Batch perakitan pagi"
+}
+```
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "message": "Berhasil memproduksi 5 unit Modul M01 (Controller Kit). Stok komponen otomatis terpotong.",
+  "data": {
+    "id": 12,
+    "production_date": "2026-09-17",
+    "module_id": 1,
+    "quantity_produced": 5,
+    "produced_by": "Ahmad Petugas"
+  }
+}
+```
+
+*Jika salah satu komponen bahan baku kurang, server mengembalikan 422 dengan rincian nama item dan jumlah kekurangannya.*
+
+### 12.5 POST `/mikms/qc-logs`
+Mencatat hasil pemeriksaan kendali mutu (Quality Control) modul atau boks kit.
+
+**Request**:
+```json
+{
+  "qc_date": "2026-09-17",
+  "module_id": 1,
+  "target_box_code": "BOX-MLK-001",
+  "status_qc": "LOLOS",
+  "defect_notes": null,
+  "checked_by": "Budi QC",
+  "notes": "Semua pin berfungsi normal"
+}
+```
+
+### 12.6 POST `/mikms/shipments`
+Mencatat surat jalan pengiriman boks kit ke sekolah. Boks yang tercatat otomatis diubah statusnya menjadi `ON_LOAN`.
+
+**Request**:
+```json
+{
+  "shipment_date": "2026-09-17",
+  "box_code": "BOX-MLK-001",
+  "program_code": "MLK",
+  "program_name": "Microbit Learning Kit",
+  "school_name": "SMP Negeri 1 Jakarta",
+  "quantity_box": 1,
+  "shipped_by": "Doni Logistik",
+  "received_by_school": "Pak Guru Joko",
+  "notes": "Pengiriman tahap 1"
+}
+```
+
+### 12.7 POST `/mikms/returns`
+Mencatat pengembalian boks kit dari sekolah. Jika kondisi `LENGKAP` boks kembali `READY`; jika `RUSAK` status boks berubah menjadi `REPAIR`; jika `HILANG` status berubah menjadi `DAMAGED`.
+
+**Request**:
+```json
+{
+  "return_date": "2026-09-17",
+  "box_code": "BOX-MLK-001",
+  "school_name": "SMP Negeri 1 Jakarta",
+  "condition": "RUSAK",
+  "problematic_item_code": "OP-001",
+  "problematic_item_name": "LED Merah",
+  "problematic_quantity": 2,
+  "received_by": "Ahmad Petugas",
+  "notes": "LED kaki patah"
+}
+```
+
+### 12.8 POST `/mikms/repairs`
+Mencatat tindakan perbaikan barang/komponen boks. Jika `repair_result` adalah `BERHASIL`, status boks terkait otomatis dipulihkan menjadi `READY`.
+
+**Request**:
+```json
+{
+  "repair_date": "2026-09-17",
+  "item_code": "OP-001",
+  "item_name": "LED Merah",
+  "asset_id": "BOX-MLK-001",
+  "damage_type": "Kaki komponen patah",
+  "repair_action": "Solder ulang dan penggantian 1 pcs LED",
+  "quantity": 1,
+  "repair_result": "BERHASIL",
+  "repaired_by": "Teknisi Rudi",
+  "notes": "Selesai ditest normal"
+}
+```
+
+### 12.9 POST `/mikms/stock-opnames`
+Mencatat hasil pemeriksaan fisik inventaris lapangan dan menghitung selisih antara stok sistem dan fisik.
+
+**Request**:
+```json
+{
+  "opname_date": "2026-09-17",
+  "item_code": "CT-001",
+  "physical_quantity": 24,
+  "difference_reason": "1 pcs tertinggal di lab",
+  "counted_by": "Ahmad Petugas"
+}
+```
+
+### 12.10 GET `/mikms/logs`
+Mengambil data riwayat aktivitas MIKMS dengan pagination (20 baris per halaman).
+**Query param `type`**: `productions`, `qc`, `shipments`, `returns`, `repairs`, `opname`, `package_orders`.
+
+---
+
+### 12.11 Smart Cascading BOM Engine
+
+Engine ini menangani pesanan paket kit utuh (misal: 5 Microbit Learning Kit / MLK). Sistem memprioritaskan penggunaan stok modul jadi yang sudah dirakit di rak (`mikms_module_stocks`), dan secara otomatis mem-breakdown modul yang belum dirakit ke komponen dasar (*raw materials*).
+
+#### GET `/mikms/package-simulate`
+Simulasi (dry-run / preview) kebutuhan modul dan bahan baku tanpa mengubah data di database.
+
+**Query Parameter**:
+- `program_code`: `MLK` atau `ROBOTIC` (wajib)
+- `package_qty`: Jumlah paket yang dipesan (integer 1-100, wajib)
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "data": {
+    "program_code": "MLK",
+    "program_name": "Microbit Learning Kit",
+    "package_qty": 5,
+    "total_components_per_package": 95,
+    "total_modules_from_stock": 14,
+    "total_modules_to_assemble": 21,
+    "can_fulfill": true,
+    "summary": "5 paket Microbit Learning Kit. 14 modul diambil dari rak. 21 modul perlu dirakit dari bahan baku. ✅ Dapat dipenuhi.",
+    "modules_breakdown": [
+      {
+        "module_id": 1,
+        "code": "M01",
+        "name": "Controller Kit",
+        "needed": 5,
+        "ready_stock": 2,
+        "from_stock": 2,
+        "to_assemble": 3
+      }
+    ],
+    "raw_materials_needed": [
+      {
+        "item_id": 10,
+        "code": "CT-001",
+        "name": "Micro:bit V2",
+        "unit": "Pcs",
+        "needed": 3,
+        "available": 10,
+        "sufficient": true
+      }
+    ],
+    "shortages": []
+  }
+}
+```
+
+#### POST `/mikms/package-orders`
+Mengeksekusi pesanan paket kit secara atomik dalam satu transaksi database:
+1. Mengunci dan memotong stok modul siap pakai di `mikms_module_stocks` (Tier 1).
+2. Memeriksa kecukupan stok bahan baku untuk sisa modul yang harus dirakit.
+3. Mencatat transaksi keluar bahan baku di `transactions` dan log produksi otomatis di `mikms_productions` (Tier 2).
+4. Menyimpan data pesanan dan audit trail log deduksi di `mikms_package_orders`.
+
+**Request**:
+```json
+{
+  "order_date": "2026-09-17",
+  "program_code": "MLK",
+  "package_qty": 5,
+  "customer_name": "SMA Negeri 8 Jakarta",
+  "customer_id": 2,
+  "ordered_by": "Ahmad Petugas",
+  "notes": "Pesanan semester ganjil"
+}
+```
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "message": "Pesanan 5 paket Microbit Learning Kit berhasil diproses. Stok telah dipotong.",
+  "data": {
+    "id": 1,
+    "order_date": "2026-09-17",
+    "program_code": "MLK",
+    "program_name": "Microbit Learning Kit",
+    "package_qty": 5,
+    "status": "COMPLETED",
+    "deduction_log": {
+      "program": "MLK",
+      "package_qty": 5,
+      "modules": [...],
+      "raw_materials_deducted": [...]
+    }
+  }
+}
+```
+
+#### GET `/mikms/package-orders`
+List riwayat pesanan paket kit dengan pagination.
+
+---
+
+### 12.12 Manajemen Stok Modul Jadi
+
+#### GET `/mikms/module-stocks`
+Mengambil daftar stok modul jadi (M01-M10) yang siap pakai di rak.
+
+**Response 200**:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "module_id": 1,
+      "module_code": "M01",
+      "module_name": "Controller Kit",
+      "stock_ready": 8,
+      "updated_at": "2026-09-17 03:45:00"
+    }
+  ]
+}
+```
+
+#### POST `/mikms/module-stocks/adjust`
+Penyesuaian (koreksi/opname) manual terhadap stok modul siap pakai.
+
+**Request**:
+```json
+{
+  "module_id": 1,
+  "adjustment": 3,
+  "reason": "Ditemukan 3 unit modul M01 siap pakai pasca bongkar lab",
+  "adjusted_by": "Admin Gudang"
+}
+```
+
+---
+
+### 12.13 GET `/mikms/export/excel`
+Mengunduh workbook Excel terstruktur yang berisi seluruh data operasional MIKMS (Multi-sheet: Modules, Boxes, Productions, QC, Shipments, Returns, Repairs, Opname).
+
+---
+
+## 13. Error Responses
 
 Semua error menggunakan format konsisten:
 

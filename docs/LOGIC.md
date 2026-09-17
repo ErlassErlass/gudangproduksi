@@ -710,4 +710,139 @@ Berdasarkan flag status dari API, UI menerapkan perubahan gaya visual baris tabe
 - `is_warning = true` $\rightarrow$ background kuning transparan (`bg-warning/5`) + teks kuning + badge kuning **`⚠ MENIPIS`**.
 - Normal $\rightarrow$ teks hijau.
 
+---
 
+## 17. Logika Modul Lapangan MIKMS (Micro:bit Interactive Kit)
+
+Modul MIKMS dirancang untuk mengelola kit edukasi Micro:bit lapangan yang terdiri dari boks kit, modul rakitan (M01-M10), dan komponen elektronik pendukung.
+
+### 17.1 Pemetaan Modul & Komponen Bill of Materials (BOM)
+Setiap modul rakitan (misal: `M01 Controller Kit`, `M02 LED Kit`, `M03 Motion Kit`, dsb) didefinisikan dalam tabel `mikms_modules` dengan relasi detail ke komponen dasar (`items`) melalui tabel perantara `mikms_bom`:
+
+```
+mikms_modules (M01)
+  ├── mikms_bom (qty: 1) ──▶ items (CT-001 Micro:bit V2)
+  ├── mikms_bom (qty: 1) ──▶ items (CT-003 Kabel Micro USB)
+  └── mikms_bom (qty: 1) ──▶ items (CT-002 Kabel Micro Type-C)
+```
+
+### 17.2 Perakitan Modul & Otomasi Pemotongan Bahan Baku
+Saat petugas menginput hasil perakitan di form produksi (`POST /api/mikms/productions`):
+1. Sistem menghitung kebutuhan seluruh komponen dasar:
+   $$\text{Kebutuhan Komponen } i = \text{BOM Qty } i \times \text{Kuantitas Modul yang Dirakit}$$
+2. Sistem memvalidasi saldo stok dinamis setiap item di tabel `transactions`. Jika ada item yang tidak mencukupi, operasi dibatalkan dan API mengembalikan pesan kesalahan HTTP 422 dengan rincian nama item dan kekurangan kuantitasnya.
+3. Jika seluruh bahan mencukupi, dalam satu transaksi database (`DB::transaction`):
+   - Record produksi disimpan di `mikms_productions`.
+   - Record transaksi pengeluaran stok (`tipe = 'keluar'`) otomatis dibuat di tabel `transactions` untuk setiap komponen dengan catatan otomatis *"Produksi MIKMS: [Kode Modul] x [Qty]"*.
+
+### 17.3 Quality Control (QC) & Siklus Status Boks
+Pasca perakitan atau pasca penerimaan dari perbaikan, modul dan boks kit wajib melalui pemeriksaan QC (`POST /api/mikms/qc-logs`):
+- `status_qc = 'LOLOS'` $\rightarrow$ modul siap dimasukkan ke boks kit untuk didistribusikan.
+- `status_qc = 'TIDAK LOLOS'` $\rightarrow$ dicatat keterangan cacat (`defect_notes`) dan dialihkan ke antrean perbaikan (*repair*).
+
+### 17.4 Distribusi Sekolah, Retur, dan Pemulihan Repair
+Status boks kit fisik (`mikms_boxes.status`) mengikuti *finite state machine*:
+
+```
+           ┌──────────────────────┐
+           │        READY         │◀─────────────────┐
+           └──────────┬───────────┘                  │
+                      │ Surat Jalan                  │
+                      │ (POST /mikms/shipments)      │
+                      ▼                              │
+           ┌──────────────────────┐                  │ Repair BERHASIL
+           │       ON_LOAN        │                  │ (POST /mikms/repairs)
+           └──────────┬───────────┘                  │
+                      │ Pengembalian                 │
+                      │ (POST /mikms/returns)        │
+         ┌────────────┴────────────┐                 │
+         │ Kondisi:                │ Kondisi:        │
+         │ LENGKAP                 │ RUSAK           │
+         ▼                         ▼                 │
+      [READY]             ┌─────────────────┐        │
+                          │     REPAIR      │────────┘
+                          └────────┬────────┘
+                                   │ Repair GAGAL
+                                   ▼
+                          ┌─────────────────┐
+                          │ DAMAGED/DISPOSED│
+                          └─────────────────┘
+```
+
+---
+
+## 18. Smart Cascading Multi-Level BOM Engine
+
+### 18.1 Konsep Deduksi Bertingkat (Cascading BOM)
+Dalam operasional harian, pesanan dari sekolah masuk dalam bentuk **paket kit utuh** (misal: 5 paket Microbit Learning Kit / MLK). Satu paket MLK membutuhkan 7 modul (M01 sampai M07).
+
+Sistem menerapkan prinsip efisiensi gudang dua tingkat (*Two-Tier Allocation*):
+- **Tingkat 1 (Gudang WIP / Rak Modul Jadi)**: Gunakan stok modul jadi yang sudah dirakit sebelumnya (`mikms_module_stocks`).
+- **Tingkat 2 (Gudang Bahan Mentah / Raw Material)**: Untuk sisa modul yang belum tersedia di rak, sistem secara otomatis mem-breakdown modul ke daftar komponen bahan mentahnya (komponen BOM) dan memotong stok bahan mentah tersebut secara otomatis.
+
+### 18.2 Algoritma Simulasi (`packageSimulate`)
+Sebelum melakukan pesanan nyata, petugas dapat melihat tinjauan simulasi (`GET /api/mikms/package-simulate`):
+1. Menentukan daftar modul yang wajib ada untuk program yang dipilih (MLK atau ROBOTIC).
+2. Membandingkan kebutuhan dengan saldo `stock_ready` di `mikms_module_stocks`:
+   $$\text{from\_stock} = \min(\text{stock\_ready}, \text{package\_qty})$$
+   $$\text{to\_assemble} = \text{package\_qty} - \text{from\_stock}$$
+3. Untuk modul dengan $\text{to\_assemble} > 0$, sistem menghitung akumulasi seluruh komponen mentah yang dibutuhkan dan membandingkannya dengan stok riil di gudang.
+4. Mengembalikan ringkasan status `can_fulfill = true/false` beserta rincian kekurangan jika ada.
+
+### 18.3 Eksekusi Pesanan Paket (`storePackageOrder`)
+Dijalankan secara atomik (`DB::beginTransaction()`):
+1. **Kunci Baris**: `MikmsModuleStock::where(...)->lockForUpdate()` mencegah *race condition* stok ganda.
+2. **Potong Modul Rak**: Untuk modul yang diambil dari rak, kurangi `stock_ready` dan catat audit log di `mikms_module_stock_logs` dengan tipe `package_out`.
+3. **Validasi & Potong Bahan Mentah**: Untuk modul yang harus dirakit:
+   - Validasi ketersediaan stok seluruh komponen bahan mentah.
+   - Buat transaksi keluar (`tipe = 'keluar'`) pada tabel `transactions`.
+   - Catat auto-produksi pada `mikms_productions` sebagai jejak riwayat perakitan.
+4. **Simpan Pesanan**: Catat transaksi pesanan di `mikms_package_orders` lengkap dengan snapshot rincian pemotongan format JSON pada kolom `deduction_log`.
+
+---
+
+## 19. Arsitektur Navigasi Terpadu (Unified Pipeline)
+
+### 19.1 Filosofi Reorganisasi Navigasi
+Sebelumnya, navigasi memisahkan menu reguler, sewa, dan modul MIKMS ke dalam grup terpisah. Pada versi 3.5, antarmuka disatukan menjadi **1 alur kerja terpadu berbasis aktivitas gudang**:
+1. **Overview**: Dashboard Terpadu & metrik ringkas.
+2. **Barang Masuk**: Scan QR & formulir penerimaan barang dari vendor.
+3. **Produksi & Modul**: Perakitan modul BOM, stok modul jadi, QC, dan spesifikasi BOM.
+4. **Pesanan & Keluar**: Pesanan paket kit bertingkat (Cascading BOM) dan surat jalan pengiriman ke sekolah.
+5. **Sirkulasi & Inventori**: Manajemen boks kit, retur, repair, unit asset terserialisasi, dan sewa.
+6. **Stok & Laporan**: Katalog stok agregat, kartu stok terpadu, riwayat transaksi, dan stock opname.
+7. **Tools & Administrasi**: Cetak QR label, SOP alur kerja interaktif, dan master data.
+
+### 19.2 Dispatcher `goPage(name, mikmsTab)`
+Fungsi navigasi utama di frontend (`app.blade.php`) mendukung parameter tab opsional:
+```javascript
+function goPage(name, mikmsTab) {
+  // 1. Tampilkan kontainer halaman
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('pg-' + name).classList.add('active');
+
+  // 2. Highlight sidebar spesifik (sb-link-{name} atau sb-link-mk-{mikmsTab})
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active', ...));
+  const linkId = (name === 'mikms' && mikmsTab) ? 'sb-link-mk-' + mikmsTab : 'sb-link-' + name;
+  const activeEl = document.getElementById(linkId);
+  if (activeEl) activeEl.classList.add('active', ...);
+
+  // 3. Sinkronisasi judul halaman di header
+  document.getElementById('tb-page-title').textContent = pageTitle;
+
+  // 4. Dispatch instan ke tab MIKMS jika ada
+  if (name === 'mikms') {
+    if (mikmsTab) {
+      currentMikmsTab = mikmsTab;
+      switchMikmsTab(mikmsTab);
+    }
+    loadMikmsPage();
+  }
+}
+```
+
+### 19.3 Sinkronisasi Status Aktif Dua Arah
+Saat pengguna berpindah tab dari dalam halaman MIKMS melalui tombol tab bar horizontal (`switchMikmsTab(tab)`):
+- Sidebar link yang bersesuaian (`#sb-link-mk-{tab}`) otomatis aktif dan disorot dengan warna primer.
+- Judul topbar diperbarui mengikuti nama sub-aktivitas tab aktif.
+- Tombol tab aktif di-scroll secara halus ke posisi tengah layar pada perangkat bergerak (mobile).
