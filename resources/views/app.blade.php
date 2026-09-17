@@ -94,6 +94,14 @@ button, .btn, .sb-item, .pin-dot {
 .page.active {
   display: block;
 }
+/* Utility: Hide Scrollbar */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 </style>
 </head>
 <body class="font-sans bg-base-200 text-base-content min-h-screen overflow-hidden">
@@ -138,28 +146,50 @@ button, .btn, .sb-item, .pin-dot {
       </div>
     </div>
     <nav class="flex-1 py-4 px-3 overflow-y-auto space-y-1" role="menu">
+      <!-- ═══ OVERVIEW ═══ -->
       <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mb-2">Overview</div>
-      <div id="sb-link-dashboard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 active" onclick="goPage('dashboard')"><span>📊</span> Dashboard Utama</div>
+      <div id="sb-link-dashboard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 active" onclick="goPage('dashboard')"><span>📊</span> Dashboard Terpadu</div>
+
+      <!-- ═══ BARANG MASUK ═══ -->
+      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Barang Masuk</div>
+      <div id="sb-link-scan" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('scan')"><span>📷</span> Scan & Input Masuk</div>
+
+      <!-- ═══ PRODUKSI & MODUL ═══ -->
+      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Produksi & Modul</div>
+      <div id="sb-link-mk-production" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','production')"><span>⚙️</span> Perakitan Modul (BOM)</div>
+      <div id="sb-link-mk-modulestocks" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','modulestocks')"><span>🏭</span> Stok Modul Jadi</div>
+      <div id="sb-link-mk-qc" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','qc')"><span>✅</span> Quality Control</div>
+      <div id="sb-link-mk-bomlist" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','bomlist')"><span>📑</span> Master BOM Kit</div>
+
+      <!-- ═══ PESANAN & KELUAR ═══ -->
+      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Pesanan & Keluar</div>
+      <div id="sb-link-mk-packageorder" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','packageorder')"><span>📦</span> Pesan Paket Kit <span class="badge badge-accent badge-sm font-extrabold ml-auto text-white">BOM</span></div>
+      <div id="sb-link-mk-shipment" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','shipment')"><span>🚚</span> Kirim ke Sekolah</div>
+
+      <!-- ═══ SIRKULASI & INVENTORI ═══ -->
+      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Sirkulasi & Inventori</div>
+      <div id="sb-link-mk-boxes" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','boxes')"><span>📋</span> Daftar Boks Kit</div>
+      <div id="sb-link-mk-return" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','return')"><span>↩️</span> Retur / Kembali</div>
+      <div id="sb-link-mk-repair" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','repair')"><span>🔧</span> Maintenance & Repair</div>
       <div id="sb-link-sewadash" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewadash')"><span>📈</span> Dashboard Sewa</div>
-
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Operasional Reguler</div>
-      <div id="sb-link-scan" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('scan')"><span>📷</span> Scan Barang</div>
-      <div id="sb-link-stock" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('stock')"><span>📦</span> Daftar Stok (Biasa)</div>
-      <div id="sb-link-transactions" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('transactions')"><span>📋</span> Riwayat Transaksi <span class="badge badge-error badge-sm font-extrabold ml-auto text-white" id="sb-pending" style="display:none">0</span></div>
-      <div id="sb-link-stockcard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('stockcard')"><span>📄</span> Kartu Stok (Biasa)</div>
-
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Operasional Sewa & Bekas</div>
       <div id="sb-link-sewamutasi" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewamutasi')"><span>🔄</span> Transaksi Sewa</div>
       <div id="sb-link-sewaunits" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewaunits')"><span>🔍</span> Daftar Unit Asset</div>
       <div id="sb-link-sewacard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewacard')"><span>📄</span> Riwayat & Kartu Asset</div>
 
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Modul MIKMS Lapangan</div>
-      <div id="sb-link-mikms" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms')"><span>🤖</span> Operasional MIKMS</div>
-      <div id="sb-link-mikmsguide" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikmsguide')"><span>📖</span> SOP & Panduan (How-To)</div>
+      <!-- ═══ STOK & LAPORAN ═══ -->
+      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Stok & Laporan</div>
+      <div id="sb-link-stock" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('stock')"><span>📦</span> Katalog Semua Stok</div>
+      <div id="sb-link-stockcard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('stockcard')"><span>📄</span> Kartu Stok Terpadu</div>
+      <div id="sb-link-transactions" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('transactions')"><span>📋</span> Riwayat Transaksi <span class="badge badge-error badge-sm font-extrabold ml-auto text-white" id="sb-pending" style="display:none">0</span></div>
+      <div id="sb-link-mk-opname" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','opname')"><span>📋</span> Stock Opname MIKMS</div>
+      <div id="sb-link-mk-logs" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','logs')"><span>📜</span> Log Aktivitas MIKMS</div>
 
+      <!-- ═══ TOOLS ═══ -->
       <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Tools</div>
       <div id="sb-link-print" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('print')"><span>🖨️</span> Cetak QR Stiker</div>
+      <div id="sb-link-mikmsguide" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikmsguide')"><span>📖</span> SOP & Panduan MIKMS</div>
 
+      <!-- ═══ ADMINISTRASI ═══ -->
       <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2 admin-section" style="display:none">Administrasi</div>
       <div id="sb-link-master" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('master')"><span>🛠️</span> Master Barang</div>
       <div id="sb-link-locations" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('locations')"><span>🏢</span> Master Lokasi</div>
@@ -229,13 +259,56 @@ button, .btn, .sb-item, .pin-dot {
           </div>
         </div>
 
+        <!-- MIKMS QUICK SUMMARY -->
+        <div class="card bg-gradient-to-r from-primary/5 via-base-100 to-accent/5 border border-primary/15 shadow-sm p-4 mt-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-base-content/50">🤖 Ringkasan MIKMS</h3>
+            <button class="btn btn-xs btn-ghost text-primary font-bold" onclick="goPage('mikms','boxes')">Lihat Semua →</button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-base-100/80 rounded-xl p-3 border border-base-200 shadow-xs flex items-center gap-3 cursor-pointer hover:bg-base-200/50 transition" onclick="goPage('mikms','boxes')">
+              <div class="w-9 h-9 rounded-lg bg-info/10 text-info flex items-center justify-center text-lg font-bold">📦</div>
+              <div>
+                <div class="text-[9px] font-bold uppercase tracking-wider text-base-content/50">Total Boks</div>
+                <div class="text-base font-extrabold text-base-content" id="dash-mk-boxes">—</div>
+              </div>
+            </div>
+            <div class="bg-base-100/80 rounded-xl p-3 border border-base-200 shadow-xs flex items-center gap-3 cursor-pointer hover:bg-base-200/50 transition" onclick="goPage('mikms','modulestocks')">
+              <div class="w-9 h-9 rounded-lg bg-success/10 text-success flex items-center justify-center text-lg font-bold">🏭</div>
+              <div>
+                <div class="text-[9px] font-bold uppercase tracking-wider text-base-content/50">Modul Jadi</div>
+                <div class="text-base font-extrabold text-success" id="dash-mk-modules">—</div>
+              </div>
+            </div>
+            <div class="bg-base-100/80 rounded-xl p-3 border border-base-200 shadow-xs flex items-center gap-3 cursor-pointer hover:bg-base-200/50 transition" onclick="goPage('mikms','packageorder')">
+              <div class="w-9 h-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center text-lg font-bold">📦</div>
+              <div>
+                <div class="text-[9px] font-bold uppercase tracking-wider text-base-content/50">Pesanan</div>
+                <div class="text-base font-extrabold text-accent" id="dash-mk-orders">—</div>
+              </div>
+            </div>
+            <div class="bg-base-100/80 rounded-xl p-3 border border-base-200 shadow-xs flex items-center gap-3 cursor-pointer hover:bg-base-200/50 transition" onclick="goPage('mikms','shipment')">
+              <div class="w-9 h-9 rounded-lg bg-warning/10 text-warning flex items-center justify-center text-lg font-bold">🚚</div>
+              <div>
+                <div class="text-[9px] font-bold uppercase tracking-wider text-base-content/50">Di Sekolah</div>
+                <div class="text-base font-extrabold text-warning" id="dash-mk-loan">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- MOBILE QUICK LINKS -->
-        <div class="lg:hidden mt-6 flex flex-col gap-3">
-          <button onclick="goPage('scan')" class="btn btn-primary w-full shadow-lg rounded-2xl py-4 h-auto text-base font-extrabold flex items-center justify-center gap-3">
-            <span>📷</span> Mulai Scan QR Barang
+        <div class="lg:hidden mt-6 grid grid-cols-2 gap-3">
+          <button onclick="goPage('scan')" class="btn btn-primary w-full shadow-lg rounded-2xl py-4 h-auto text-sm font-extrabold flex flex-col items-center justify-center gap-1">
+            <span class="text-2xl">📷</span> Scan Barang
           </button>
-          <button onclick="goPage('stock')" class="btn btn-neutral btn-outline w-full rounded-2xl py-3 h-auto text-sm font-bold flex items-center justify-center gap-2">
-            <span>📦</span> Lihat Daftar Stok
+          <button onclick="goPage('mikms','packageorder')" class="btn btn-accent w-full shadow-lg rounded-2xl py-4 h-auto text-sm font-extrabold flex flex-col items-center justify-center gap-1">
+            <span class="text-2xl">📦</span> Pesan Paket
+          </button>
+          <button onclick="goPage('stock')" class="btn btn-neutral btn-outline w-full rounded-2xl py-3 h-auto text-sm font-bold flex flex-col items-center justify-center gap-1">
+            <span class="text-2xl">📦</span> Lihat Stok
+          </button>
+          <button onclick="goPage('mikms','production')" class="btn btn-neutral btn-outline w-full rounded-2xl py-3 h-auto text-sm font-bold flex flex-col items-center justify-center gap-1">
+            <span class="text-2xl">⚙️</span> Rakit Modul
           </button>
         </div>
 
@@ -2664,16 +2737,26 @@ async function api(url, opts = {}) {
 /* ═════════════════════════════════════════════
    NAVIGATION
    ═════════════════════════════════════════════ */
-function goPage(name) {
+function goPage(name, mikmsTab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('pg-' + name).classList.add('active');
   
   // Clear highlight on all items
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20'));
   
-  // Highlight the active item by ID
-  const activeLink = document.getElementById('sb-link-' + name);
-  if (activeLink) activeLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+  // Highlight the active sidebar item
+  // For MIKMS sub-items, highlight the specific sb-link-mk-{tab} element
+  if (name === 'mikms' && mikmsTab) {
+    const mkLink = document.getElementById('sb-link-mk-' + mikmsTab);
+    if (mkLink) mkLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+  } else if (name === 'mikms') {
+    const targetTab = (typeof currentMikmsTab !== 'undefined' && currentMikmsTab) ? currentMikmsTab : 'boxes';
+    const mkLink = document.getElementById('sb-link-mk-' + targetTab);
+    if (mkLink) mkLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+  } else {
+    const activeLink = document.getElementById('sb-link-' + name);
+    if (activeLink) activeLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+  }
   
   // Toggle Hamburger menu vs Back button on mobile topbar
   const isDashboard = name === 'dashboard';
@@ -2689,27 +2772,43 @@ function goPage(name) {
     }
   }
 
+  // Title map — includes MIKMS tab-specific titles
+  const mikmsTitles = {
+    production: 'Perakitan Modul (BOM)',
+    modulestocks: 'Stok Modul Jadi',
+    qc: 'Quality Control',
+    bomlist: 'Master BOM Kit',
+    packageorder: 'Pesan Paket Kit (BOM)',
+    shipment: 'Kirim ke Sekolah',
+    boxes: 'Daftar Boks Kit',
+    return: 'Retur / Kembali',
+    repair: 'Maintenance & Repair',
+    opname: 'Stock Opname MIKMS',
+    logs: 'Log Aktivitas MIKMS'
+  };
   const titles = { 
-    dashboard: 'Dashboard', 
-    scan: 'Scan Barang', 
-    stock: 'Daftar Stok', 
+    dashboard: 'Dashboard Terpadu', 
+    scan: 'Scan & Input Masuk', 
+    stock: 'Katalog Semua Stok', 
     transactions: 'Riwayat Transaksi', 
-    stockcard: 'Kartu Stok', 
+    stockcard: 'Kartu Stok Terpadu', 
     print: 'Cetak QR Stiker', 
     master: 'Master Barang',
     sewadash: 'Dashboard Sewa & Bekas',
-    sewamutasi: 'Operasional Transaksi Sewa',
+    sewamutasi: 'Transaksi Sewa',
     sewaunits: 'Daftar Unit Asset',
     sewacard: 'Riwayat & Kartu Asset',
-    locations: 'Manajemen Lokasi Penyimpanan',
-    vendors: 'Manajemen Master Vendor',
-    customers: 'Manajemen Master Customer',
-    categories: 'Master Kategori Barang',
-    users: 'Manajemen Master User',
-    mikms: 'Operasional MIKMS Lapangan',
-    mikmsguide: 'Panduan & SOP Alur Kerja MIKMS'
+    locations: 'Manajemen Lokasi',
+    vendors: 'Master Vendor',
+    customers: 'Master Customer',
+    categories: 'Master Kategori',
+    users: 'Master User',
+    mikms: 'Operasional MIKMS',
+    mikmsguide: 'SOP & Panduan MIKMS'
   };
-  document.getElementById('tb-page-title').textContent = titles[name] || name;
+  // Use MIKMS tab-specific title if available
+  const pageTitle = (name === 'mikms' && mikmsTab && mikmsTitles[mikmsTab]) ? mikmsTitles[mikmsTab] : (titles[name] || name);
+  document.getElementById('tb-page-title').textContent = pageTitle;
   document.getElementById('main-scroll').scrollTop = 0;
   closeSidebar();
   if (name === 'stock') loadStock();
@@ -2724,7 +2823,13 @@ function goPage(name) {
   if (name === 'vendors' || name === 'customers') loadPartnersPage();
   if (name === 'categories') loadCategoriesPage();
   if (name === 'users') loadUsersPage();
-  if (name === 'mikms') loadMikmsPage();
+  if (name === 'mikms') {
+    if (mikmsTab) {
+      currentMikmsTab = mikmsTab;
+      switchMikmsTab(mikmsTab);
+    }
+    loadMikmsPage();
+  }
   if (name === 'mikmsguide') renderMikmsGuide();
 }
 function toggleSidebar() {
@@ -2867,6 +2972,25 @@ function renderDashboard() {
   }).join('') : '<tr><td colspan="7" class="text-center py-8 text-base-content/40">Belum ada transaksi</td></tr>';
 
   renderCharts();
+
+  // MIKMS summary cards on dashboard
+  fetchApi('/api/mikms/dashboard').then(res => {
+    if (res && res.data) {
+      const d = res.data;
+      const totalBoxes = (d.total_by_status || []).reduce((a, s) => a + s.count, 0);
+      const loanBoxes = (d.total_by_status || []).find(s => s.status === 'dipinjam')?.count || 0;
+      document.getElementById('dash-mk-boxes').textContent = totalBoxes;
+      document.getElementById('dash-mk-loan').textContent = loanBoxes;
+      // Orders count
+      document.getElementById('dash-mk-orders').textContent = d.total_packages_ordered || 0;
+    }
+  }).catch(() => {});
+  fetchApi('/api/mikms/module-stocks').then(res => {
+    if (res && res.data) {
+      const totalModules = res.data.reduce((a, m) => a + (m.stock_ready || 0), 0);
+      document.getElementById('dash-mk-modules').textContent = totalModules;
+    }
+  }).catch(() => {});
 }
 
 function renderCharts() {
@@ -4785,11 +4909,38 @@ function switchMikmsTab(tab) {
     if (btn.dataset.tab === tab) {
       btn.classList.add('active', 'bg-primary', 'text-primary-content');
       btn.classList.remove('btn-ghost');
+      try { btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch(e){}
     } else {
       btn.classList.remove('active', 'bg-primary', 'text-primary-content');
       btn.classList.add('btn-ghost');
     }
   });
+
+  // Sync sidebar active highlight and topbar title
+  const pgMikms = document.getElementById('pg-mikms');
+  if (pgMikms && pgMikms.classList.contains('active')) {
+    document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20'));
+    const mkLink = document.getElementById('sb-link-mk-' + tab);
+    if (mkLink) mkLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+    
+    const mikmsTitles = {
+      production: 'Perakitan Modul (BOM)',
+      modulestocks: 'Stok Modul Jadi',
+      qc: 'Quality Control',
+      bomlist: 'Master BOM Kit',
+      packageorder: 'Pesan Paket Kit (BOM)',
+      shipment: 'Kirim ke Sekolah',
+      boxes: 'Daftar Boks Kit',
+      return: 'Retur / Kembali',
+      repair: 'Maintenance & Repair',
+      opname: 'Stock Opname MIKMS',
+      logs: 'Log Aktivitas MIKMS'
+    };
+    if (mikmsTitles[tab]) {
+      const titleEl = document.getElementById('tb-page-title');
+      if (titleEl) titleEl.textContent = mikmsTitles[tab];
+    }
+  }
 
   document.querySelectorAll('.mikms-tab-content').forEach(p => p.classList.add('hidden'));
   const target = document.getElementById('mk-panel-' + tab);
