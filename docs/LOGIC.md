@@ -201,7 +201,7 @@ public function getKartuStok(int $year, string $gudang = null): array
 1. User buka halaman SCAN
 2. Aktifkan kamera → jsQR decode QR code
 3. QR terdeteksi → extract kode barang
-   Format QR: "KODE|NAMA" (contoh: "MSJ01|Modul Scratch Jilid 01")
+   Format QR: "KODE|NAMA" (contoh: "CT-001|Micro:bit V2")
 4. Auto-fill form: kode, nama, satuan
 5. User pilih mode: MASUK atau KELUAR
 6. Isi detail: gudang, qty, sumber/penerima, PO/PRN, dll
@@ -443,7 +443,7 @@ QR Code berisi string dengan format:
 ```
 {KODE}|{NAMA}
 ```
-Contoh: `MSJ01|Modul Scratch Jilid 01`
+Contoh: `CT-001|Micro:bit V2`
 
 ### 10.2 Decoding (Scanner)
 
@@ -798,6 +798,12 @@ Dijalankan secara atomik (`DB::beginTransaction()`):
    - Buat transaksi keluar (`tipe = 'keluar'`) pada tabel `transactions`.
    - Catat auto-produksi pada `mikms_productions` sebagai jejak riwayat perakitan.
 4. **Simpan Pesanan**: Catat transaksi pesanan di `mikms_package_orders` lengkap dengan snapshot rincian pemotongan format JSON pada kolom `deduction_log`.
+
+### 18.4 Resolusi Dinamis Master Program Kit
+Daftar modul penyusun setiap program kit **sepenuhnya dinamis** dan dikelola melalui tabel `mikms_programs`.
+- Saat fungsi `getModulesForProgram($programCode)` dijalankan, sistem mengambil definisi modul langsung dari database (`MikmsProgram::where('code', $programCode)->value('modules')`).
+- Estimasi pcs komponen (`calculateTotalPcs()`) dihitung otomatis dengan menjumlahkan seluruh `quantity_per_module` dari komponen BOM yang terkait dengan modul-modul terpilih.
+- Antarmuka formulir pesanan paket secara otomatis memuat daftar program aktif via `/api/mikms/programs?active_only=1` sehingga setiap penambahan program kit baru (misal: STEAM, IoT, AI Kit) langsung siap disimulasikan dan dipesan tanpa perubahan kode.
 
 ---
 

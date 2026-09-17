@@ -71,6 +71,10 @@ Atau untuk download file di tab baru, gunakan query parameter:
 | POST | `/mikms/package-orders` | ✅ | Semua | Eksekusi pesanan paket (deduksi bertingkat) |
 | GET | `/mikms/module-stocks` | ✅ | Semua | Stok modul jadi siap pakai |
 | POST | `/mikms/module-stocks/adjust` | ✅ | Semua | Penyesuaian stok modul jadi manual |
+| GET | `/mikms/programs` | ✅ | Semua | List Master Program Kit (BOM Packages) |
+| POST | `/mikms/programs` | ✅ | Semua | Tambah Master Program Kit baru |
+| PUT | `/mikms/programs/{id}` | ✅ | Semua | Perbarui Master Program Kit |
+| DELETE | `/mikms/programs/{id}` | ✅ | Semua | Hapus / nonaktifkan Program Kit |
 | GET | `/mikms/export/excel` | ✅ | Semua | Download Excel seluruh data MIKMS |
 | GET | `/export/excel` | ✅ | Semua | Download Excel transaksi reguler |
 | GET | `/export/pdf/{item_id}` | ✅ | Semua | Download PDF Kartu Stok |
@@ -154,14 +158,14 @@ List semua barang aktif dengan filter opsional.
   "data": [
     {
       "id": 1,
-      "kode": "MSJ01",
-      "nama": "Modul Scratch Jilid 01",
+      "kode": "CT-001",
+      "nama": "Micro:bit V2",
       "satuan": "pcs",
-      "produk": "Modul",
-      "komponen": null,
-      "lokasi_default": null,
+      "produk": "Controller",
+      "komponen": "Microcontroller",
+      "lokasi_default": "Gudang Raw Material",
       "min_stok": 5,
-      "deskripsi": null,
+      "deskripsi": "Papan utama Micro:bit V2",
       "stok": 42
     }
   ]
@@ -211,14 +215,14 @@ Detail satu barang.
   "success": true,
   "data": {
     "id": 1,
-    "kode": "MSJ01",
-    "nama": "Modul Scratch Jilid 01",
+    "kode": "CT-001",
+    "nama": "Micro:bit V2",
     "satuan": "pcs",
-    "produk": "Modul",
-    "komponen": null,
-    "lokasi_default": null,
+    "produk": "Controller",
+    "komponen": "Microcontroller",
+    "lokasi_default": "Gudang Raw Material",
     "min_stok": 5,
-    "deskripsi": null,
+    "deskripsi": "Papan utama Micro:bit V2",
     "stok": 42
   }
 }
@@ -265,11 +269,11 @@ Status stok semua barang, dengan summary.
     "items": [
       {
         "id": 1,
-        "kode": "MSJ01",
-        "nama": "Modul Scratch Jilid 01",
+        "kode": "CT-001",
+        "nama": "Micro:bit V2",
         "satuan": "pcs",
-        "produk": "Modul",
-        "komponen": null,
+        "produk": "Controller",
+        "komponen": "Microcontroller",
         "masuk": 50,
         "keluar": 8,
         "stok": 42
@@ -301,7 +305,7 @@ Kartu stok (running balance) per barang per tahun.
 {
   "success": true,
   "data": {
-    "item": { "id": 1, "kode": "MSJ01", "nama": "..." },
+    "item": { "id": 1, "kode": "CT-001", "nama": "Micro:bit V2" },
     "year": 2026,
     "gudang": "Semua",
     "opening_balance": 45,
@@ -362,8 +366,8 @@ Riwayat transaksi dengan filter.
       "petugas": "Admin Gudang",
       "item": {
         "id": 1,
-        "kode": "MSJ01",
-        "nama": "Modul Scratch Jilid 01"
+        "kode": "CT-001",
+        "nama": "Micro:bit V2"
       }
     }
   ]
@@ -381,11 +385,11 @@ Simpan transaksi baru. Mendukung **single** dan **bulk** (untuk offline sync).
 **Request**:
 ```json
 {
-  "kode": "MSJ01",
+  "kode": "CT-001",
   "tipe": "masuk",
   "qty": 10,
   "transaction_date": "2026-06-29",
-  "lokasi": "Gudang Utama",
+  "lokasi": "Gudang Raw Material",
   "sumber": "Supplier / Vendor",
   "no_po": "PO-001",
   "petugas": "Admin Gudang",
@@ -406,7 +410,7 @@ Simpan transaksi baru. Mendukung **single** dan **bulk** (untuk offline sync).
 ```json
 {
   "success": false,
-  "message": "Stok tidak cukup untuk MSJ01. Tersedia: 3"
+  "message": "Stok tidak cukup untuk CT-001. Tersedia: 3"
 }
 ```
 
@@ -416,8 +420,8 @@ Simpan transaksi baru. Mendukung **single** dan **bulk** (untuk offline sync).
 ```json
 {
   "transactions": [
-    { "kode": "MSJ01", "tipe": "masuk", "qty": 5, "lokasi": "Gudang Utama", "client_id": "GS-111" },
-    { "kode": "MSJ02", "tipe": "keluar", "qty": 2, "lokasi": "Gudang Raw Material", "client_id": "GS-222" }
+    { "kode": "CT-001", "tipe": "masuk", "qty": 5, "lokasi": "Gudang Raw Material", "client_id": "GS-111" },
+    { "kode": "CT-002", "tipe": "keluar", "qty": 2, "lokasi": "Gudang Raw Material", "client_id": "GS-222" }
   ]
 }
 ```
@@ -1447,6 +1451,128 @@ Penyesuaian (koreksi/opname) manual terhadap stok modul siap pakai.
 
 ### 12.13 GET `/mikms/export/excel`
 Mengunduh workbook Excel terstruktur yang berisi seluruh data operasional MIKMS (Multi-sheet: Modules, Boxes, Productions, QC, Shipments, Returns, Repairs, Opname).
+
+---
+
+### 12.14 Master Program Kit (BOM Packages)
+Manajemen master program kit pembelajaran/pelatihan yang menyusun paket modul MIKMS secara dinamis.
+
+#### GET `/mikms/programs`
+List seluruh program kit yang terdaftar.
+
+**Query Parameter**:
+- `active_only` (optional, boolean): `1` untuk hanya menampilkan program yang berstatus aktif (digunakan pada dropdown form Pesan Paket).
+
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "code": "MLK",
+      "name": "Microbit Learning Kit",
+      "description": "Kit pembelajaran dasar micro:bit mencakup Controller, LED, Motion, Sensor, Power, Mech, Conn",
+      "modules": ["M01", "M02", "M03", "M04", "M05", "M06", "M07"],
+      "total_pcs": 95,
+      "is_active": true,
+      "created_at": "2026-09-17T05:00:00.000000Z",
+      "updated_at": "2026-09-17T05:00:00.000000Z"
+    },
+    {
+      "id": 2,
+      "code": "ROBOTIC",
+      "name": "Robotic Explorer Kit",
+      "description": "Kit eksplorasi robotik mencakup Modul MIKMS ditambah Robotik Jimu",
+      "modules": ["M01", "M02", "M07", "M08"],
+      "total_pcs": 81,
+      "is_active": true,
+      "created_at": "2026-09-17T05:00:00.000000Z",
+      "updated_at": "2026-09-17T05:00:00.000000Z"
+    }
+  ]
+}
+```
+
+#### POST `/mikms/programs`
+Mendaftarkan Program Kit baru beserta modul-modul MIKMS penyusunnya.
+
+**Request Body**:
+```json
+{
+  "code": "STEAM_ADV",
+  "name": "STEAM Advanced Robot Kit",
+  "description": "Paket lanjutan integrasi servo dan sensor",
+  "modules": ["M01", "M03", "M04", "M07"],
+  "is_active": true
+}
+```
+
+**Response (201 Created)**:
+```json
+{
+  "status": "success",
+  "success": true,
+  "message": "Program Kit STEAM Advanced Robot Kit (STEAM_ADV) berhasil ditambahkan.",
+  "data": {
+    "id": 3,
+    "code": "STEAM_ADV",
+    "name": "STEAM Advanced Robot Kit",
+    "description": "Paket lanjutan integrasi servo dan sensor",
+    "modules": ["M01", "M03", "M04", "M07"],
+    "total_pcs": 62,
+    "is_active": true,
+    "created_at": "2026-09-17T06:00:00.000000Z",
+    "updated_at": "2026-09-17T06:00:00.000000Z"
+  }
+}
+```
+
+#### PUT `/mikms/programs/{id}`
+Memperbarui informasi nama, deskripsi, daftar modul penyusun, atau status aktif Program Kit.
+
+**Request Body**:
+```json
+{
+  "name": "STEAM Advanced Robot Kit V2",
+  "description": "Kurikulum diperbarui dengan modul baterai",
+  "modules": ["M01", "M03", "M04", "M05", "M07"],
+  "is_active": true
+}
+```
+
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "success": true,
+  "message": "Program Kit STEAM_ADV berhasil diperbarui.",
+  "data": {
+    "id": 3,
+    "code": "STEAM_ADV",
+    "name": "STEAM Advanced Robot Kit V2",
+    "description": "Kurikulum diperbarui dengan modul baterai",
+    "modules": ["M01", "M03", "M04", "M05", "M07"],
+    "total_pcs": 67,
+    "is_active": true,
+    "created_at": "2026-09-17T06:00:00.000000Z",
+    "updated_at": "2026-09-17T06:05:00.000000Z"
+  }
+}
+```
+
+#### DELETE `/mikms/programs/{id}`
+Menghapus Program Kit. Jika program telah memiliki riwayat transaksi (pesanan paket di `mikms_package_orders` atau pengiriman sekolah di `mikms_shipments`), sistem secara aman mengubah status menjadi nonaktif (`is_active = false`) agar integritas audit transaksi masa lalu tetap terjaga. Jika belum ada transaksi, data dihapus permanen.
+
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "success": true,
+  "message": "Program STEAM_ADV berhasil dihapus permanen."
+}
+```
 
 ---
 

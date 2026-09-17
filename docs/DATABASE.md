@@ -261,6 +261,17 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
+    mikms_programs {
+        int id PK
+        string code UK
+        string name
+        text description
+        json modules
+        int total_pcs
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
 
     users ||--o{ transactions : "menginput"
     categories ||--o{ items : "mengelompokkan"
@@ -280,6 +291,7 @@ erDiagram
     mikms_modules ||--o{ mikms_qc_logs : "diperiksa"
     mikms_modules ||--o{ mikms_module_stocks : "stok jadi"
     mikms_modules ||--o{ mikms_module_stock_logs : "mutasi stok jadi"
+    mikms_programs ||--o{ mikms_package_orders : "paket pesanan"
 ```
 
 ---
@@ -610,6 +622,21 @@ Data pesanan paket kit bertingkat (*Cascading BOM*) lengkap dengan log deduksi b
 | `deduction_log` | json | Yes | Rincian lengkap pembagian modul rak vs rakitan mentah |
 | `ordered_by` | varchar(100) | No | Nama petugas pemroses |
 | `notes` | text | Yes | Catatan pesanan |
+| `created_at` | timestamp | Yes | Timestamp dibuat |
+| `updated_at` | timestamp | Yes | Timestamp diperbarui |
+
+### 3.21 Tabel `mikms_programs`
+Master program kit pembelajaran/pelatihan (BOM Packages) yang mendefinisikan modul-modul MIKMS penyusun paket secara dinamis.
+
+| Nama Kolom | Tipe Data | Nullable | Keterangan |
+|---|---|---|---|
+| `id` | bigint unsigned | No | Primary Key |
+| `code` | varchar(50) | No | Kode unik program (misal: `MLK`, `ROBOTIC`, `STEAM`) |
+| `name` | varchar(100) | No | Nama program paket kit |
+| `description` | text | Yes | Keterangan/kurikulum program |
+| `modules` | json | No | Array kode modul penyusun, contoh: `["M01","M02","M07"]` |
+| `total_pcs` | int | No | Estimasi total pcs komponen dihitung otomatis dari BOM |
+| `is_active` | boolean | No | Default: `true` (Tampil di opsi pesanan paket) |
 | `created_at` | timestamp | Yes | Timestamp dibuat |
 | `updated_at` | timestamp | Yes | Timestamp diperbarui |
 

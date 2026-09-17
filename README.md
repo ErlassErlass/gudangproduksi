@@ -28,6 +28,7 @@ Aplikasi menerapkan arsitektur navigasi **Unified Pipeline** yang menyelaraskan 
 | **📷 Scan QR & Barcode** | Pemindaian kode barang otomatis via kamera web/mobile menggunakan engine `jsQR` berpresisi tinggi dengan deteksi auto-fill instan ke formulir transaksi. |
 | **⚙️ Perakitan Modul MIKMS (BOM)** | Pengelolaan perakitan modul elektronik (M01 Controller, M02 LED, M03 Motion, M07 Connection, dsb) berbasis standar Bill of Materials (BOM) dengan pengurangan otomatis stok komponen bahan mentah. |
 | **📦 Cascading Multi-Level BOM** | Otomasi pesanan paket kit utuh (misal: 5 Microbit Learning Kit / MLK): sistem memprioritaskan pengurangan stok modul jadi yang siap pakai (`mikms_module_stocks`), dan secara otomatis mem-breakdown modul yang belum dirakit ke komponen dasar (*raw materials*). |
+| **📋 Master Program Kit** | Pengelolaan paket program kurikulum kit dinamis (misal: MLK, ROBOTIC, STEAM, IoT) yang menyusun modul-modul MIKMS (M01-M11) dengan kalkulasi estimasi total pcs komponen real-time. Terintegrasi langsung ke dropdown pesanan paket. |
 | **✅ Quality Control (QC)** | Pencatatan verifikasi kelayakan modul pasca-produksi sebelum dimasukkan ke dalam boks kit siap distribusi sekolah. |
 | **🚚 Distribusi & Sirkulasi Sekolah** | Surat jalan pengiriman boks kit ke sekolah/mitra (`mikms_shipments`), pencatatan pengembalian/retur (`mikms_returns`), serta pencatatan boks kit bermasalah ke antrean reparasi (`mikms_repairs`). |
 | **🔄 Modul Sewa & Unit Bekas** | Pelacakan unit asset terserialisasi (*Serialized Asset Tracking*) dengan riwayat mutasi antar-lokasi, peminjaman/sewa keluar (*rent-out*), pengembalian (*rent-return*), dan kartu riwayat unit individu. |
@@ -105,6 +106,7 @@ Sistem mendukung autentikasi menggunakan **NIK Karyawan & Kata Sandi** serta ops
 │  │ • mikms_productions  • mikms_qc_logs         • mikms_shipments     │  │
 │  │ • mikms_returns      • mikms_repairs         • mikms_stock_opnames │  │
 │  │ • mikms_module_stocks• mikms_module_stock_logs                     │  │
+│  │ • mikms_programs     (Master kurikulum & paket modul dinamis)       │  │
 │  │ • mikms_package_orders (Cascading multi-level deduction log)       │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
