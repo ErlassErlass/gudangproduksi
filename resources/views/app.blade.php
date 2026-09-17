@@ -145,58 +145,74 @@ button, .btn, .sb-item, .pin-dot {
         <span class="text-[9px] font-bold text-base-content/40 font-mono tracking-wider">MULTI-WAREHOUSE v3.5</span>
       </div>
     </div>
-    <nav class="flex-1 py-4 px-3 overflow-y-auto space-y-1" role="menu">
-      <!-- ═══ OVERVIEW ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mb-2">Overview</div>
-      <div id="sb-link-dashboard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 active" onclick="goPage('dashboard')"><span>📊</span> Dashboard Terpadu</div>
+    <nav class="flex-1 py-4 px-3 overflow-y-auto space-y-1.5" role="menu">
+      <!-- 1. DASHBOARD -->
+      <div id="sb-link-dashboard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 active" onclick="goPage('dashboard')">
+        <span class="text-base">📊</span> 
+        <span>Dashboard</span>
+      </div>
 
-      <!-- ═══ BARANG MASUK ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Barang Masuk</div>
-      <div id="sb-link-scan" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('scan')"><span>📷</span> Scan & Input Masuk</div>
+      <!-- 2. SCAN BARANG -->
+      <div id="sb-link-scan" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50" onclick="goPage('scan')">
+        <span class="text-base">📷</span> 
+        <span>Scan Barang</span>
+      </div>
 
-      <!-- ═══ PRODUKSI & MODUL ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Produksi & Modul</div>
-      <div id="sb-link-mk-production" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','production')"><span>⚙️</span> Perakitan Modul (BOM)</div>
-      <div id="sb-link-mk-modulestocks" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','modulestocks')"><span>🏭</span> Stok Modul Jadi</div>
-      <div id="sb-link-mk-qc" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','qc')"><span>✅</span> Quality Control</div>
-      <div id="sb-link-mk-bomlist" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','bomlist')"><span>📑</span> Master BOM Kit</div>
+      <!-- 3. MODUL MIKMS -->
+      <div id="sb-link-mikms" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50" onclick="goPage('mikms')">
+        <span class="text-base">🤖</span> 
+        <span>Modul MIKMS</span>
+        <span class="badge badge-primary badge-xs font-bold ml-auto text-primary-content">Kit Lab</span>
+      </div>
 
-      <!-- ═══ PESANAN & KELUAR ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Pesanan & Keluar</div>
-      <div id="sb-link-mk-packageorder" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','packageorder')"><span>📦</span> Pesan Paket Kit <span class="badge badge-accent badge-sm font-extrabold ml-auto text-white">BOM</span></div>
-      <div id="sb-link-mk-shipment" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','shipment')"><span>🚚</span> Kirim ke Sekolah</div>
+      <!-- 4. SEWA & ASSET -->
+      <div id="sb-link-sewadash" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50" onclick="goPage('sewadash')">
+        <span class="text-base">🔄</span> 
+        <span>Sewa & Asset</span>
+      </div>
 
-      <!-- ═══ SIRKULASI & INVENTORI ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Sirkulasi & Inventori</div>
-      <div id="sb-link-mk-boxes" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','boxes')"><span>📋</span> Daftar Boks Kit</div>
-      <div id="sb-link-mk-return" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','return')"><span>↩️</span> Retur / Kembali</div>
-      <div id="sb-link-mk-repair" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','repair')"><span>🔧</span> Maintenance & Repair</div>
-      <div id="sb-link-sewadash" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewadash')"><span>📈</span> Dashboard Sewa</div>
-      <div id="sb-link-sewamutasi" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewamutasi')"><span>🔄</span> Transaksi Sewa</div>
-      <div id="sb-link-sewaunits" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewaunits')"><span>🔍</span> Daftar Unit Asset</div>
-      <div id="sb-link-sewacard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('sewacard')"><span>📄</span> Riwayat & Kartu Asset</div>
+      <!-- 5. KATALOG STOK -->
+      <div id="sb-link-stock" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50" onclick="goPage('stock')">
+        <span class="text-base">📦</span> 
+        <span>Katalog Stok</span>
+        <span class="badge badge-error badge-sm font-extrabold ml-auto text-white" id="sb-pending" style="display:none">0</span>
+      </div>
 
-      <!-- ═══ STOK & LAPORAN ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Stok & Laporan</div>
-      <div id="sb-link-stock" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('stock')"><span>📦</span> Katalog Semua Stok</div>
-      <div id="sb-link-stockcard" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('stockcard')"><span>📄</span> Kartu Stok Terpadu</div>
-      <div id="sb-link-transactions" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('transactions')"><span>📋</span> Riwayat Transaksi <span class="badge badge-error badge-sm font-extrabold ml-auto text-white" id="sb-pending" style="display:none">0</span></div>
-      <div id="sb-link-mk-opname" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','opname')"><span>📋</span> Stock Opname MIKMS</div>
-      <div id="sb-link-mk-logs" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikms','logs')"><span>📜</span> Log Aktivitas MIKMS</div>
+      <!-- 6. CETAK QR -->
+      <div id="sb-link-print" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50" onclick="goPage('print')">
+        <span class="text-base">🖨️</span> 
+        <span>Cetak Label QR</span>
+      </div>
 
-      <!-- ═══ TOOLS ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2">Tools</div>
-      <div id="sb-link-print" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('print')"><span>🖨️</span> Cetak QR Stiker</div>
-      <div id="sb-link-mikmsguide" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50" onclick="goPage('mikmsguide')"><span>📖</span> SOP & Panduan MIKMS</div>
+      <!-- 7. PANDUAN & SOP -->
+      <div id="sb-link-mikmsguide" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-transparent hover:bg-base-200/70 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50" onclick="goPage('mikmsguide')">
+        <span class="text-base">📖</span> 
+        <span>SOP & Panduan</span>
+      </div>
 
-      <!-- ═══ ADMINISTRASI ═══ -->
-      <div class="px-3 text-[10px] font-bold uppercase tracking-widest text-base-content/40 mt-6 mb-2 admin-section" style="display:none">Administrasi</div>
-      <div id="sb-link-master" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('master')"><span>🛠️</span> Master Barang</div>
-      <div id="sb-link-locations" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('locations')"><span>🏢</span> Master Lokasi</div>
-      <div id="sb-link-vendors" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('vendors')"><span>🤝</span> Master Vendor</div>
-      <div id="sb-link-customers" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('customers')"><span>🏫</span> Master Customer</div>
-      <div id="sb-link-categories" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('categories')"><span>🏷️</span> Master Kategori</div>
-      <div id="sb-link-users" tabindex="0" role="menuitem" class="sb-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-base-200 transition duration-200 text-base-content/70 hover:text-base-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200/50 admin-section" style="display:none" onclick="goPage('users')"><span>👥</span> Master User</div>
+      <!-- SEPARATOR FOR ADMIN -->
+      <div class="my-2 border-t border-base-200/60 admin-section" style="display:none"></div>
+
+      <!-- 8. MASTER DATA ACCORDION (ADMIN ONLY) -->
+      <div class="admin-section" style="display:none">
+        <details class="group" id="sb-master-details">
+          <summary class="flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-base-content/50 hover:text-base-content hover:bg-base-200/60 cursor-pointer list-none transition select-none">
+            <span class="flex items-center gap-2">
+              <span>🛠️</span>
+              <span>Master Data</span>
+            </span>
+            <span class="text-xs transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div class="pl-3 pr-1 py-1 space-y-0.5 border-l-2 border-base-300 ml-4 mt-1">
+            <div id="sb-link-master" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('master')"><span>📦</span> Master Barang</div>
+            <div id="sb-link-locations" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('locations')"><span>🏢</span> Master Lokasi</div>
+            <div id="sb-link-vendors" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('vendors')"><span>🤝</span> Master Vendor</div>
+            <div id="sb-link-customers" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('customers')"><span>🏫</span> Master Customer</div>
+            <div id="sb-link-categories" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('categories')"><span>🏷️</span> Master Kategori</div>
+            <div id="sb-link-users" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('users')"><span>👥</span> Master User</div>
+          </div>
+        </details>
+      </div>
     </nav>
     <div class="p-4 border-t border-base-200 shrink-0">
       <div tabindex="0" role="button" aria-label="Logout" class="flex items-center gap-3 p-3 rounded-2xl bg-base-200/50 hover:bg-base-200 cursor-pointer transition duration-200 focus:outline-none focus:ring-2 focus:ring-error/50" onclick="logoutUser()">
@@ -440,6 +456,13 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ STOCK PAGE ═══ -->
       <div class="page" id="pg-stock">
+        <!-- SUB-NAV TABS (STOCK) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('stock')">📦 Katalog Stok</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('transactions')">📋 Riwayat Transaksi</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('stockcard')">📄 Kartu Stok</button>
+        </div>
+
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div class="flex flex-wrap gap-2 items-center">
             <select id="stk-gudang" class="select select-bordered select-sm" onchange="loadStock()">
@@ -474,6 +497,13 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ TRANSACTIONS PAGE ═══ -->
       <div class="page" id="pg-transactions">
+        <!-- SUB-NAV TABS (TRANSACTIONS) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('stock')">📦 Katalog Stok</button>
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('transactions')">📋 Riwayat Transaksi</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('stockcard')">📄 Kartu Stok</button>
+        </div>
+
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div class="flex flex-wrap gap-2 items-center">
             <select id="tx-gudang" class="select select-bordered select-sm" onchange="loadTransactions()">
@@ -511,6 +541,12 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ STOCK CARD PAGE ═══ -->
       <div class="page" id="pg-stockcard">
+        <!-- SUB-NAV TABS (STOCK CARD) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('stock')">📦 Katalog Stok</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('transactions')">📋 Riwayat Transaksi</button>
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('stockcard')">📄 Kartu Stok</button>
+        </div>
         <div class="flex flex-wrap gap-2 items-center mb-6">
           <div class="join max-w-xs w-full">
             <input type="text" id="sc-item-search" class="input input-bordered input-sm join-item w-full" placeholder="Cari Kode atau Nama Barang..." list="sc-item-dl" oninput="onScItemSearchInput()" autocomplete="off">
@@ -619,6 +655,14 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ SEWA DASHBOARD PAGE ═══ -->
       <div class="page" id="pg-sewadash">
+        <!-- SUB-NAV TABS (SEWA) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('sewadash')">📈 Dashboard Sewa</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewamutasi')">🔄 Transaksi Sewa</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewaunits')">🔍 Daftar Unit</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewacard')">📄 Riwayat Asset</button>
+        </div>
+
         <!-- STATS SECTION -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="sewa-stats"></div>
 
@@ -640,6 +684,14 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ TRANSAKSI SEWA PAGE ═══ -->
       <div class="page" id="pg-sewamutasi">
+        <!-- SUB-NAV TABS (SEWA MUTASI) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewadash')">📈 Dashboard Sewa</button>
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('sewamutasi')">🔄 Transaksi Sewa</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewaunits')">🔍 Daftar Unit</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewacard')">📄 Riwayat Asset</button>
+        </div>
+
         <div class="tabs tabs-boxed mb-6 bg-base-200 p-1 flex justify-start gap-1">
           <button class="tab tab-active font-bold text-xs" id="tab-btn-sewain" onclick="switchSewaTab('sewain')">📥 Penerimaan Asset Baru</button>
           <button class="tab font-bold text-xs" id="tab-btn-sewaout" onclick="switchSewaTab('sewaout')">📤 Sewa Keluar</button>
@@ -806,6 +858,14 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ DAFTAR UNIT ASSET PAGE ═══ -->
       <div class="page" id="pg-sewaunits">
+        <!-- SUB-NAV TABS (SEWA UNITS) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewadash')">📈 Dashboard Sewa</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewamutasi')">🔄 Transaksi Sewa</button>
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('sewaunits')">🔍 Daftar Unit</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewacard')">📄 Riwayat Asset</button>
+        </div>
+
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div class="flex flex-wrap gap-2">
             <select id="sf-tipe" class="select select-bordered select-sm w-36 font-semibold" onchange="loadSewaUnitsPage()">
@@ -840,6 +900,14 @@ button, .btn, .sb-item, .pin-dot {
 
       <!-- ═══ RIWAYAT & KARTU ASSET PAGE ═══ -->
       <div class="page" id="pg-sewacard">
+        <!-- SUB-NAV TABS (SEWA CARD) -->
+        <div class="flex items-center gap-1.5 mb-6 bg-base-100 p-1.5 rounded-2xl border border-base-200 shadow-xs w-fit">
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewadash')">📈 Dashboard Sewa</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewamutasi')">🔄 Transaksi Sewa</button>
+          <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-base-content font-bold text-xs rounded-xl" onclick="goPage('sewaunits')">🔍 Daftar Unit</button>
+          <button class="btn btn-sm btn-primary text-primary-content shadow-xs font-bold text-xs rounded-xl" onclick="goPage('sewacard')">📄 Riwayat Asset</button>
+        </div>
+
         <div class="card bg-base-100 border border-base-300 shadow-sm p-6 mb-6">
           <div class="form-control w-full md:w-96">
             <label class="label"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Pilih Unit Asset (Serial Number / QR)</span></label>
@@ -1168,41 +1236,128 @@ button, .btn, .sb-item, .pin-dot {
           </div>
         </div>
 
-        <!-- TABS BAR (MOBILE-OPTIMIZED HORIZONTAL SCROLL) -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-6 scrollbar-none border-b border-base-300">
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn active bg-primary text-primary-content hover:bg-primary" data-tab="boxes" onclick="switchMikmsTab('boxes')">
-            📦 Daftar Boks Kit
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="bomlist" onclick="switchMikmsTab('bomlist')">
-            📑 List Komponen Kit (BOM)
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="production" onclick="switchMikmsTab('production')">
-            ⚙️ Perakitan & BOM
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="qc" onclick="switchMikmsTab('qc')">
-            ✅ Quality Control (QC)
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="shipment" onclick="switchMikmsTab('shipment')">
-            🚚 Kirim ke Sekolah
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="return" onclick="switchMikmsTab('return')">
-            ↩️ Retur / Kembali
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="repair" onclick="switchMikmsTab('repair')">
-            🔧 Maintenance & Repair
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="opname" onclick="switchMikmsTab('opname')">
-            📋 Stock Opname Fisik
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="logs" onclick="switchMikmsTab('logs')">
-            📜 Riwayat Aktivitas
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="packageorder" onclick="switchMikmsTab('packageorder')">
-            📦 Pesan Paket
-          </button>
-          <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="modulestocks" onclick="switchMikmsTab('modulestocks')">
-            🏭 Stok Modul Jadi
-          </button>
+        <!-- WORKFLOW STEPPER BANNER (INTERACTIVE 5-STAGE PIPELINE) -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm p-4 sm:p-5 mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-base-200">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+              <h3 class="text-xs font-black uppercase tracking-wider text-base-content/80">Alur Operasional MIKMS</h3>
+              <span class="badge badge-sm badge-neutral text-[10px] font-bold">5 Tahap Berurutan</span>
+            </div>
+            <span class="text-[11px] text-base-content/50 font-medium hidden sm:inline">Pilih tahap untuk langsung menuju aksi workflow</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5" id="mikms-stepper">
+            <!-- Step 1 -->
+            <div class="mikms-step-card p-3 rounded-2xl border border-base-200 bg-base-100 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all duration-200 flex flex-col justify-between group select-none shadow-xs" data-step="1" onclick="switchMikmsTab('packageorder')">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mikms-step-num text-[10px] font-black px-2 py-0.5 rounded-md bg-base-200 text-base-content/70 group-hover:bg-primary group-hover:text-primary-content transition">01</span>
+                <span class="text-xl">📦</span>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-base-content group-hover:text-primary transition">1. Pesan Paket</div>
+                <div class="text-[10px] text-base-content/60 leading-tight mt-0.5">Input order & potong stok modul/raw</div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="mikms-step-card p-3 rounded-2xl border border-base-200 bg-base-100 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all duration-200 flex flex-col justify-between group select-none shadow-xs" data-step="2" onclick="switchMikmsTab('production')">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mikms-step-num text-[10px] font-black px-2 py-0.5 rounded-md bg-base-200 text-base-content/70 group-hover:bg-primary group-hover:text-primary-content transition">02</span>
+                <span class="text-xl">⚙️</span>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-base-content group-hover:text-primary transition">2. Rakit Modul</div>
+                <div class="text-[10px] text-base-content/60 leading-tight mt-0.5">Perakitan BOM & cek stok modul</div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="mikms-step-card p-3 rounded-2xl border border-base-200 bg-base-100 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all duration-200 flex flex-col justify-between group select-none shadow-xs" data-step="3" onclick="switchMikmsTab('qc')">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mikms-step-num text-[10px] font-black px-2 py-0.5 rounded-md bg-base-200 text-base-content/70 group-hover:bg-primary group-hover:text-primary-content transition">03</span>
+                <span class="text-xl">✅</span>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-base-content group-hover:text-primary transition">3. Quality Control</div>
+                <div class="text-[10px] text-base-content/60 leading-tight mt-0.5">Uji kelayakan modul & kit boks</div>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="mikms-step-card p-3 rounded-2xl border border-base-200 bg-base-100 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all duration-200 flex flex-col justify-between group select-none shadow-xs" data-step="4" onclick="switchMikmsTab('shipment')">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mikms-step-num text-[10px] font-black px-2 py-0.5 rounded-md bg-base-200 text-base-content/70 group-hover:bg-primary group-hover:text-primary-content transition">04</span>
+                <span class="text-xl">🚚</span>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-base-content group-hover:text-primary transition">4. Kirim Sekolah</div>
+                <div class="text-[10px] text-base-content/60 leading-tight mt-0.5">Packing boks siap & ekspedisi</div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="mikms-step-card p-3 rounded-2xl border border-base-200 bg-base-100 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all duration-200 flex flex-col justify-between group select-none shadow-xs col-span-2 sm:col-span-1" data-step="5" onclick="switchMikmsTab('return')">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mikms-step-num text-[10px] font-black px-2 py-0.5 rounded-md bg-base-200 text-base-content/70 group-hover:bg-primary group-hover:text-primary-content transition">05</span>
+                <span class="text-xl">🔄</span>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-base-content group-hover:text-primary transition">5. Retur & Servis</div>
+                <div class="text-[10px] text-base-content/60 leading-tight mt-0.5">Cek barang kembali & repair</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABS BAR (GROUPED & LOGICALLY ORDERED) -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm p-3 mb-6">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <!-- GROUP 1: OPERASIONAL UTAMA -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+              <span class="text-[10px] font-black uppercase tracking-wider text-base-content/40 px-2 shrink-0">Operasi:</span>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="packageorder" onclick="switchMikmsTab('packageorder')">
+                📦 Pesan Paket
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="production" onclick="switchMikmsTab('production')">
+                ⚙️ Perakitan
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="modulestocks" onclick="switchMikmsTab('modulestocks')">
+                🏭 Stok Modul
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="qc" onclick="switchMikmsTab('qc')">
+                ✅ QC
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn active bg-primary text-primary-content hover:bg-primary" data-tab="boxes" onclick="switchMikmsTab('boxes')">
+                📦 Daftar Boks
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="shipment" onclick="switchMikmsTab('shipment')">
+                🚚 Kirim
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="return" onclick="switchMikmsTab('return')">
+                ↩️ Retur
+              </button>
+            </div>
+
+            <div class="hidden lg:block w-px h-6 bg-base-300"></div>
+
+            <!-- GROUP 2: MAINTENANCE & DATA -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pt-2 lg:pt-0 border-t lg:border-t-0 border-base-200 scrollbar-none">
+              <span class="text-[10px] font-black uppercase tracking-wider text-base-content/40 px-2 shrink-0">Audit:</span>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="repair" onclick="switchMikmsTab('repair')">
+                🔧 Repair
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="bomlist" onclick="switchMikmsTab('bomlist')">
+                📑 BOM Kit
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="opname" onclick="switchMikmsTab('opname')">
+                📋 Opname
+              </button>
+              <button class="btn btn-sm btn-ghost font-bold text-xs shrink-0 rounded-xl transition mikms-tab-btn" data-tab="logs" onclick="switchMikmsTab('logs')">
+                📜 Log
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- ═══ TAB 1: DAFTAR BOKS KIT ═══ -->
@@ -2745,18 +2900,20 @@ function goPage(name, mikmsTab) {
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20'));
   
   // Highlight the active sidebar item
-  // For MIKMS sub-items, highlight the specific sb-link-mk-{tab} element
-  if (name === 'mikms' && mikmsTab) {
-    const mkLink = document.getElementById('sb-link-mk-' + mikmsTab);
-    if (mkLink) mkLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+  let activeId = 'sb-link-' + name;
+  if (['sewadash', 'sewamutasi', 'sewaunits', 'sewacard'].includes(name)) {
+    activeId = 'sb-link-sewadash';
+  } else if (['stock', 'stockcard', 'transactions'].includes(name)) {
+    activeId = 'sb-link-stock';
   } else if (name === 'mikms') {
-    const targetTab = (typeof currentMikmsTab !== 'undefined' && currentMikmsTab) ? currentMikmsTab : 'boxes';
-    const mkLink = document.getElementById('sb-link-mk-' + targetTab);
-    if (mkLink) mkLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
-  } else {
-    const activeLink = document.getElementById('sb-link-' + name);
-    if (activeLink) activeLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
+    activeId = 'sb-link-mikms';
+  } else if (['master', 'locations', 'vendors', 'customers', 'categories', 'users'].includes(name)) {
+    const details = document.getElementById('sb-master-details');
+    if (details) details.setAttribute('open', '');
+    activeId = 'sb-link-' + name;
   }
+  const activeLink = document.getElementById(activeId);
+  if (activeLink) activeLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
   
   // Toggle Hamburger menu vs Back button on mobile topbar
   const isDashboard = name === 'dashboard';
@@ -4916,11 +5073,37 @@ function switchMikmsTab(tab) {
     }
   });
 
+  // Highlight 5-stage workflow stepper cards
+  document.querySelectorAll('.mikms-step-card').forEach(card => {
+    const step = card.dataset.step;
+    const isStepActive = (step === '1' && tab === 'packageorder') ||
+                         (step === '2' && (tab === 'production' || tab === 'modulestocks')) ||
+                         (step === '3' && tab === 'qc') ||
+                         (step === '4' && (tab === 'shipment' || tab === 'boxes')) ||
+                         (step === '5' && (tab === 'return' || tab === 'repair'));
+    const numBadge = card.querySelector('.mikms-step-num');
+    if (isStepActive) {
+      card.classList.add('border-primary', 'bg-primary/10', 'ring-2', 'ring-primary/20', 'shadow-sm');
+      card.classList.remove('border-base-200', 'bg-base-100');
+      if (numBadge) {
+        numBadge.classList.add('bg-primary', 'text-primary-content');
+        numBadge.classList.remove('bg-base-200', 'text-base-content/70');
+      }
+    } else {
+      card.classList.remove('border-primary', 'bg-primary/10', 'ring-2', 'ring-primary/20', 'shadow-sm');
+      card.classList.add('border-base-200', 'bg-base-100');
+      if (numBadge) {
+        numBadge.classList.remove('bg-primary', 'text-primary-content');
+        numBadge.classList.add('bg-base-200', 'text-base-content/70');
+      }
+    }
+  });
+
   // Sync sidebar active highlight and topbar title
   const pgMikms = document.getElementById('pg-mikms');
   if (pgMikms && pgMikms.classList.contains('active')) {
     document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20'));
-    const mkLink = document.getElementById('sb-link-mk-' + tab);
+    const mkLink = document.getElementById('sb-link-mikms');
     if (mkLink) mkLink.classList.add('active', 'bg-primary/10', 'text-primary', 'border', 'border-primary/20');
     
     const mikmsTitles = {
