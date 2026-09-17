@@ -44,15 +44,6 @@ class DatabaseSeeder extends Seeder
 
         $defaultItems = [
             // ── PRODUK UNTUK PENJUALAN (EPI) ──────────────────────
-            ['kode'=>'MSJ01', 'nama'=>'Modul Scratch Jilid 1', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ02', 'nama'=>'Modul Scratch Jilid 2', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ03', 'nama'=>'Modul Scratch Jilid 3', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ04', 'nama'=>'Modul Scratch Jilid 4', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ05', 'nama'=>'Modul Scratch Jilid 5', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ06', 'nama'=>'Modul Scratch Jilid 6', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ07', 'nama'=>'Modul Project Scratch', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Scratch'],
-            ['kode'=>'MSJ08', 'nama'=>'Modul Project Pictoblox AI', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul AI'],
-            ['kode'=>'MSJ09', 'nama'=>'Modul Python', 'satuan'=>'pcs', 'produk'=>'Modul', 'komponen'=>'Modul Python'],
             ['kode'=>'MB01',  'nama'=>'Microbit Beginner', 'satuan'=>'pcs', 'produk'=>'Microbit Learning Kit', 'komponen'=>'Beginner Micro'],
             ['kode'=>'MLK01', 'nama'=>'Microbit Learning Kit', 'satuan'=>'pcs', 'produk'=>'Microbit Learning Kit', 'komponen'=>'Full Kit'],
             ['kode'=>'RE01',  'nama'=>'Robotic Explorer', 'satuan'=>'unit', 'produk'=>'Robotic Explorer', 'komponen'=>'Jimu'],
