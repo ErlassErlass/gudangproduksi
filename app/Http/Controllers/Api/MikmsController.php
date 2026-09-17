@@ -19,6 +19,7 @@ use App\Models\MikmsStockOpname;
 use App\Models\MikmsModuleStock;
 use App\Models\MikmsModuleStockLog;
 use App\Models\MikmsPackageOrder;
+use App\Models\MikmsProgram;
 
 class MikmsController extends Controller
 {
@@ -459,11 +460,29 @@ class MikmsController extends Controller
 
     /**
      * Map program codes to their required module codes.
-     * MLK (Microbit Learning Kit): M01-M07, total 95 pcs per kit
-     * ROBOTIC (Robotic Explorer): M01,M03-M05,M07,M08, total 81 pcs per kit
+     * Reads dynamically from database `mikms_programs`, with fallback to default mapping.
      */
     private function getProgramModules(): array
     {
+        try {
+            $programs = MikmsProgram::where('is_active', true)->get();
+            if ($programs->isNotEmpty()) {
+                $result = [];
+                foreach ($programs as $p) {
+                    $modules = is_array($p->modules) ? $p->modules : json_decode($p->modules, true);
+                    $result[strtoupper($p->code)] = [
+                        'name' => $p->name,
+                        'modules' => $modules ?: [],
+                        'total_pcs' => $p->total_pcs ?: $p->calculateTotalPcs(),
+                        'description' => $p->description,
+                    ];
+                }
+                return $result;
+            }
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
         return [
             'MLK' => [
                 'name' => 'Microbit Learning Kit',
@@ -489,13 +508,21 @@ class MikmsController extends Controller
     public function packageSimulate(Request $request)
     {
         $request->validate([
-            'program_code' => 'required|string|in:MLK,ROBOTIC',
+            'program_code' => 'required|string|max:50',
             'package_qty' => 'required|integer|min:1|max:100',
         ]);
 
-        $programCode = strtoupper($request->program_code);
+        $programCode = strtoupper(trim($request->program_code));
         $packageQty = (int) $request->package_qty;
         $programs = $this->getProgramModules();
+
+        if (!isset($programs[$programCode])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Program Kit {$programCode} tidak ditemukan atau belum aktif di Master Program.",
+            ], 422);
+        }
+
         $program = $programs[$programCode];
 
         // 1. Get required modules and their current ready stock
@@ -623,7 +650,7 @@ class MikmsController extends Controller
     {
         $validated = $request->validate([
             'order_date' => 'required|date',
-            'program_code' => 'required|string|in:MLK,ROBOTIC',
+            'program_code' => 'required|string|max:50',
             'package_qty' => 'required|integer|min:1|max:100',
             'customer_name' => 'required|string|max:150',
             'customer_id' => 'nullable|exists:customers,id',
@@ -631,9 +658,17 @@ class MikmsController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $programCode = strtoupper($validated['program_code']);
+        $programCode = strtoupper(trim($validated['program_code']));
         $packageQty = (int) $validated['package_qty'];
         $programs = $this->getProgramModules();
+
+        if (!isset($programs[$programCode])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Program Kit {$programCode} tidak ditemukan atau belum aktif di Master Program.",
+            ], 422);
+        }
+
         $program = $programs[$programCode];
 
         DB::beginTransaction();
@@ -859,6 +894,116 @@ class MikmsController extends Controller
 
         $orders = $query->latest()->paginate(20);
         return response()->json(['status' => 'success', 'data' => $orders]);
+    }
+
+    // =============================================
+    // MASTER PROGRAM KIT CRUD
+    // =============================================
+
+    /**
+     * GET /api/mikms/programs
+     */
+    public function getPrograms(Request $request)
+    {
+        $query = MikmsProgram::query();
+        if ($request->boolean('active_only')) {
+            $query->where('is_active', true);
+        }
+        $programs = $query->orderBy('name')->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $programs,
+        ]);
+    }
+
+    /**
+     * POST /api/mikms/programs
+     */
+    public function storeProgram(Request $request)
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:mikms_programs,code',
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'modules' => 'required|array|min:1',
+            'modules.*' => 'string|exists:mikms_modules,code',
+            'is_active' => 'boolean',
+        ]);
+
+        $program = new MikmsProgram();
+        $program->code = strtoupper(trim($validated['code']));
+        $program->name = trim($validated['name']);
+        $program->description = $validated['description'] ?? null;
+        $program->modules = array_values(array_unique($validated['modules']));
+        $program->is_active = $validated['is_active'] ?? true;
+        $program->total_pcs = $program->calculateTotalPcs();
+        $program->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Program Kit {$program->name} ({$program->code}) berhasil ditambahkan.",
+            'data' => $program,
+        ], 201);
+    }
+
+    /**
+     * PUT /api/mikms/programs/{id}
+     */
+    public function updateProgram(Request $request, $id)
+    {
+        $program = MikmsProgram::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:100',
+            'description' => 'nullable|string',
+            'modules' => 'sometimes|required|array|min:1',
+            'modules.*' => 'string|exists:mikms_modules,code',
+            'is_active' => 'sometimes|boolean',
+        ]);
+
+        if (isset($validated['name'])) $program->name = trim($validated['name']);
+        if (array_key_exists('description', $validated)) $program->description = $validated['description'];
+        if (isset($validated['modules'])) {
+            $program->modules = array_values(array_unique($validated['modules']));
+            $program->total_pcs = $program->calculateTotalPcs();
+        }
+        if (isset($validated['is_active'])) $program->is_active = $validated['is_active'];
+        $program->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Program Kit {$program->code} berhasil diperbarui.",
+            'data' => $program,
+        ]);
+    }
+
+    /**
+     * DELETE /api/mikms/programs/{id}
+     */
+    public function deleteProgram($id)
+    {
+        $program = MikmsProgram::findOrFail($id);
+        $code = $program->code;
+
+        // Check if referenced in package orders or shipments
+        $hasOrders = MikmsPackageOrder::where('program_code', $code)->exists();
+        $hasShipments = MikmsShipment::where('program_code', $code)->exists();
+
+        if ($hasOrders || $hasShipments) {
+            $program->is_active = false;
+            $program->save();
+            return response()->json([
+                'status' => 'success',
+                'message' => "Program {$code} dinonaktifkan karena telah memiliki riwayat transaksi.",
+                'data' => $program,
+            ]);
+        }
+
+        $program->delete();
+        return response()->json([
+            'status' => 'success',
+            'message' => "Program {$code} berhasil dihapus permanen.",
+        ]);
     }
 }
 

@@ -75,6 +75,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Module Stock Management
         Route::get('/module-stocks', [\App\Http\Controllers\Api\MikmsController::class, 'getModuleStocks']);
         Route::post('/module-stocks/adjust', [\App\Http\Controllers\Api\MikmsController::class, 'adjustModuleStock']);
+
+        // Master Program Kit (Packages)
+        Route::get('/programs', [\App\Http\Controllers\Api\MikmsController::class, 'getPrograms']);
+        Route::post('/programs', [\App\Http\Controllers\Api\MikmsController::class, 'storeProgram']);
+        Route::put('/programs/{id}', [\App\Http\Controllers\Api\MikmsController::class, 'updateProgram']);
+        Route::delete('/programs/{id}', [\App\Http\Controllers\Api\MikmsController::class, 'deleteProgram']);
     });
 
     // File Downloads / Exports

@@ -210,6 +210,7 @@ button, .btn, .sb-item, .pin-dot {
             <div id="sb-link-customers" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('customers')"><span>🏫</span> Master Customer</div>
             <div id="sb-link-categories" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('categories')"><span>🏷️</span> Master Kategori</div>
             <div id="sb-link-users" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('users')"><span>👥</span> Master User</div>
+            <div id="sb-link-programs" class="sb-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-base-200 text-base-content/70 hover:text-base-content cursor-pointer transition" onclick="goPage('programs')"><span>🤖</span> Master Program Kit</div>
           </div>
         </details>
       </div>
@@ -1169,6 +1170,49 @@ button, .btn, .sb-item, .pin-dot {
         </div>
       </div>
 
+      <!-- ═══ MASTER PROGRAM KIT PAGE ═══ -->
+      <div class="page" id="pg-programs">
+        <div class="card bg-base-100 border border-base-300 shadow-sm p-5 mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-2xl">🤖</span>
+                <h2 class="text-lg font-extrabold text-base-content tracking-tight">Master Program Kit (BOM Packages)</h2>
+                <span class="badge badge-primary badge-sm font-bold text-[10px]">CASCADING BOM</span>
+              </div>
+              <p class="text-xs text-base-content/60 mt-1">
+                Definisikan program kit pembelajaran/pelatihan beserta modul-modul MIKMS yang menyusunnya. Paket ini otomatis tersinkron ke alur pesanan paket.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="btn btn-sm btn-primary text-xs font-bold shadow-sm" onclick="openProgramModal()">
+                + Tambah Program Kit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden p-0">
+          <div class="overflow-x-auto max-h-[calc(100vh-270px)]">
+            <table class="table table-zebra table-pin-rows table-sm">
+              <thead class="bg-base-200">
+                <tr>
+                  <th>Kode Program</th>
+                  <th>Nama Program</th>
+                  <th>Daftar Modul Terkait</th>
+                  <th class="text-right">Est. Komponen (BOM)</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="programs-tbody">
+                <tr><td colspan="6" class="text-center py-8 text-base-content/40">Memuat data program kit...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- ═════════════════════════════════════════════
            MIKMS OPERASIONAL PAGE (MODUL LAPANGAN)
            ═════════════════════════════════════════════ -->
@@ -2003,7 +2047,10 @@ button, .btn, .sb-item, .pin-dot {
             <!-- FORM INPUT PESANAN -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label class="label text-xs font-bold">Program Kit</label>
+                <div class="flex items-center justify-between">
+                  <label class="label text-xs font-bold py-1">Program Kit</label>
+                  <a href="javascript:void(0)" class="text-[10px] font-bold text-primary hover:underline py-1 admin-section" style="display:none" onclick="goPage('programs')">⚙️ Kelola Master Program</a>
+                </div>
                 <select id="pkg-program" class="select select-bordered select-sm w-full font-semibold">
                   <option value="MLK">Microbit Learning Kit (MLK) — 95 pcs/paket</option>
                   <option value="ROBOTIC">Robotic Explorer — 81 pcs/paket</option>
@@ -2461,6 +2508,65 @@ button, .btn, .sb-item, .pin-dot {
       </div>
 
       <!-- ═════════════════════════════════════════════
+           MODAL PROGRAM KIT (TAMBAH / EDIT)
+           ═════════════════════════════════════════════ -->
+      <div class="modal" id="program-modal">
+        <div class="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
+          <div class="flex justify-between items-center mb-5 pb-3 border-b border-base-200">
+            <div>
+              <h3 class="font-extrabold text-lg text-base-content" id="prog-modal-title">Tambah Program Kit Baru</h3>
+              <p class="text-xs text-base-content/50">Tentukan kode, nama, dan checklist modul penyusun paket</p>
+            </div>
+            <button class="btn btn-sm btn-circle btn-ghost" onclick="closeProgramModal()">✕</button>
+          </div>
+          <form id="program-form" onsubmit="submitProgramForm(event)" class="space-y-4">
+            <input type="hidden" id="prog-id" value="">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="form-control w-full">
+                <label class="label"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Kode Program * (Unik)</span></label>
+                <input type="text" id="prog-code" class="input input-bordered input-sm font-mono font-bold w-full uppercase" placeholder="Contoh: IOT, STEAM" required>
+              </div>
+              <div class="form-control w-full">
+                <label class="label"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Status Program</span></label>
+                <select id="prog-active" class="select select-bordered select-sm font-bold w-full">
+                  <option value="1">Aktif (Tersedia Dipilih)</option>
+                  <option value="0">Nonaktif</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Nama Program Kit *</span></label>
+              <input type="text" id="prog-name" class="input input-bordered input-sm font-bold w-full" placeholder="Contoh: IoT Smart System Kit" required>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Deskripsi / Catatan Program</span></label>
+              <textarea id="prog-desc" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="Catatan kegunaan atau kurikulum..."></textarea>
+            </div>
+
+            <div class="form-control w-full">
+              <div class="flex items-center justify-between mb-2">
+                <label class="label p-0"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Pilih Modul MIKMS Penyusun *</span></label>
+                <span class="text-[11px] font-bold text-primary" id="prog-calc-pcs">Pilihan: 0 modul (~0 pcs)</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 p-3 bg-base-200/50 rounded-xl border border-base-200 max-h-48 overflow-y-auto" id="prog-modules-checklist">
+                <!-- Checkboxes populated dynamically -->
+              </div>
+              <span class="text-[10px] text-base-content/50 mt-1">Minimal pilih 1 modul. Estimasi pcs komponen dihitung otomatis dari BOM.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-base-200">
+              <button type="button" class="btn btn-sm btn-ghost" onclick="closeProgramModal()">Batal</button>
+              <button type="submit" class="btn btn-sm btn-primary font-bold shadow-md" id="prog-submit-btn">
+                Simpan Program
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ═════════════════════════════════════════════
            MODAL REGISTER BOX MIKMS BARU
            ═════════════════════════════════════════════ -->
       <div class="modal" id="mikms-box-modal">
@@ -2867,6 +2973,7 @@ async function initApp() {
   await Promise.all([loadStock(), loadTransactions(), loadMasterDataDependents()]);
   renderDashboard();
   buildSelects();
+  loadPackageProgramsDropdown();
 }
 async function api(url, opts = {}) {
   const r = await fetch(url, {
@@ -2907,7 +3014,7 @@ function goPage(name, mikmsTab) {
     activeId = 'sb-link-stock';
   } else if (name === 'mikms') {
     activeId = 'sb-link-mikms';
-  } else if (['master', 'locations', 'vendors', 'customers', 'categories', 'users'].includes(name)) {
+  } else if (['master', 'locations', 'vendors', 'customers', 'categories', 'users', 'programs'].includes(name)) {
     const details = document.getElementById('sb-master-details');
     if (details) details.setAttribute('open', '');
     activeId = 'sb-link-' + name;
@@ -2960,6 +3067,7 @@ function goPage(name, mikmsTab) {
     customers: 'Master Customer',
     categories: 'Master Kategori',
     users: 'Master User',
+    programs: 'Master Program Kit',
     mikms: 'Operasional MIKMS',
     mikmsguide: 'SOP & Panduan MIKMS'
   };
@@ -2980,6 +3088,7 @@ function goPage(name, mikmsTab) {
   if (name === 'vendors' || name === 'customers') loadPartnersPage();
   if (name === 'categories') loadCategoriesPage();
   if (name === 'users') loadUsersPage();
+  if (name === 'programs') loadProgramsPage();
   if (name === 'mikms') {
     if (mikmsTab) {
       currentMikmsTab = mikmsTab;
@@ -6121,6 +6230,7 @@ function formatDateTime(dtStr) {
 let lastSimulationResult = null;
 
 function renderPackageOrderTab() {
+  loadPackageProgramsDropdown();
   loadPackageOrderHistory();
 }
 
@@ -6424,6 +6534,252 @@ async function adjustModuleStock() {
     }
   } catch (e) {
     showToast('Error: ' + e.message, true);
+  }
+}
+
+/* ═════════════════════════════════════════════
+   MASTER PROGRAM KIT (BOM PACKAGES)
+   ═════════════════════════════════════════════ */
+let programsList = [];
+
+async function loadProgramsPage() {
+  const tbody = document.getElementById('programs-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-base-content/40">Memuat data program kit...</td></tr>';
+
+  // Ensure mikmsModules is populated
+  if (!mikmsModules || mikmsModules.length === 0) {
+    try {
+      const mr = await api('/api/mikms/modules');
+      if (mr.ok) {
+        const md = await mr.json();
+        if (md.success) mikmsModules = md.data || [];
+      }
+    } catch(e) {}
+  }
+
+  try {
+    const res = await api('/api/mikms/programs');
+    const d = await res.json();
+    if (d.status === 'success') {
+      programsList = d.data || [];
+      renderProgramsTable();
+    } else {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-error">${escHtml(d.message || 'Gagal memuat program')}</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error loading programs:', err);
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-error">Koneksi bermasalah saat memuat program.</td></tr>';
+  }
+}
+
+function renderProgramsTable() {
+  const tbody = document.getElementById('programs-tbody');
+  if (!tbody) return;
+  if (!programsList.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-base-content/40">Belum ada Program Kit. Klik "+ Tambah Program Kit" untuk menambahkan.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = programsList.map(p => {
+    const modules = Array.isArray(p.modules) ? p.modules : [];
+    const moduleChips = modules.map(m => `<span class="badge badge-sm badge-neutral font-mono font-bold">${escHtml(m)}</span>`).join(' ');
+    const statusBadge = p.is_active 
+      ? '<span class="badge badge-success badge-sm text-white font-bold">Aktif</span>' 
+      : '<span class="badge badge-ghost badge-sm font-semibold">Nonaktif</span>';
+
+    return `
+      <tr class="hover">
+        <td class="font-mono font-extrabold text-primary">${escHtml(p.code)}</td>
+        <td>
+          <div class="font-bold text-base-content">${escHtml(p.name)}</div>
+          ${p.description ? `<div class="text-[11px] text-base-content/50">${escHtml(p.description)}</div>` : ''}
+        </td>
+        <td>
+          <div class="flex flex-wrap gap-1">${moduleChips || '<span class="text-xs text-base-content/40">-</span>'}</div>
+        </td>
+        <td class="text-right font-extrabold text-base-content">${p.total_pcs || 0} <span class="text-xs font-normal text-base-content/50">pcs</span></td>
+        <td class="text-center">${statusBadge}</td>
+        <td class="text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button class="btn btn-xs btn-ghost text-info" onclick="editProgram(${p.id})" title="Edit Program">✏️</button>
+            <button class="btn btn-xs btn-ghost text-error" onclick="deleteProgram(${p.id}, '${escHtml(p.code)}')" title="Hapus / Nonaktifkan">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openProgramModal(program = null) {
+  document.getElementById('program-form').reset();
+  const titleEl = document.getElementById('prog-modal-title');
+  const codeEl = document.getElementById('prog-code');
+  const idEl = document.getElementById('prog-id');
+  const nameEl = document.getElementById('prog-name');
+  const descEl = document.getElementById('prog-desc');
+  const activeEl = document.getElementById('prog-active');
+
+  renderProgramModulesChecklist(program ? (Array.isArray(program.modules) ? program.modules : []) : []);
+
+  if (program) {
+    titleEl.textContent = `Edit Program: ${program.code}`;
+    idEl.value = program.id;
+    codeEl.value = program.code;
+    codeEl.disabled = true;
+    nameEl.value = program.name;
+    descEl.value = program.description || '';
+    activeEl.value = program.is_active ? '1' : '0';
+  } else {
+    titleEl.textContent = 'Tambah Program Kit Baru';
+    idEl.value = '';
+    codeEl.disabled = false;
+    activeEl.value = '1';
+  }
+
+  updateProgramCalcPcs();
+  document.getElementById('program-modal').classList.add('modal-open');
+}
+
+function closeProgramModal() {
+  document.getElementById('program-modal').classList.remove('modal-open');
+}
+
+function renderProgramModulesChecklist(selectedCodes = []) {
+  const container = document.getElementById('prog-modules-checklist');
+  if (!container) return;
+  if (!mikmsModules || !mikmsModules.length) {
+    container.innerHTML = '<div class="col-span-2 text-xs text-base-content/50">Memuat daftar modul...</div>';
+    return;
+  }
+
+  container.innerHTML = mikmsModules.map(m => {
+    const isChecked = selectedCodes.includes(m.code) ? 'checked' : '';
+    return `
+      <label class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-base-100 cursor-pointer text-xs font-semibold select-none">
+        <input type="checkbox" name="prog_module_check" value="${escHtml(m.code)}" class="checkbox checkbox-xs checkbox-primary" ${isChecked} onchange="updateProgramCalcPcs()">
+        <span class="font-mono font-bold text-primary">${escHtml(m.code)}</span>
+        <span class="truncate text-base-content/80">${escHtml(m.name)}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function updateProgramCalcPcs() {
+  const checked = Array.from(document.querySelectorAll('input[name="prog_module_check"]:checked')).map(c => c.value);
+  let total = 0;
+  if (typeof BOMS_DATA !== 'undefined' && BOMS_DATA.microbit) {
+    BOMS_DATA.microbit.forEach(item => {
+      checked.forEach(modCode => {
+        if (item.mod && item.mod.includes(modCode)) {
+          total += (item.qty || 1);
+        }
+      });
+    });
+  }
+  const calcEl = document.getElementById('prog-calc-pcs');
+  if (calcEl) calcEl.textContent = `Pilihan: ${checked.length} modul (~${total} pcs/paket)`;
+}
+
+async function submitProgramForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('prog-id').value;
+  const isEdit = !!id;
+  const code = document.getElementById('prog-code').value.trim().toUpperCase();
+  const name = document.getElementById('prog-name').value.trim();
+  const description = document.getElementById('prog-desc').value.trim();
+  const is_active = document.getElementById('prog-active').value === '1';
+
+  const selectedModules = Array.from(document.querySelectorAll('input[name="prog_module_check"]:checked')).map(c => c.value);
+  if (!selectedModules.length) {
+    showToast('Pilih minimal 1 modul untuk Program Kit ini', true);
+    return;
+  }
+
+  const payload = {
+    name,
+    description,
+    modules: selectedModules,
+    is_active,
+  };
+  if (!isEdit) {
+    payload.code = code;
+  }
+
+  const btn = document.getElementById('prog-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+
+  try {
+    const url = isEdit ? `/api/mikms/programs/${id}` : '/api/mikms/programs';
+    const method = isEdit ? 'PUT' : 'POST';
+
+    const r = await api(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+
+    if (d.status === 'success' || d.success) {
+      showToast(d.message || 'Program berhasil disimpan!');
+      closeProgramModal();
+      await loadProgramsPage();
+      await loadPackageProgramsDropdown();
+    } else {
+      showToast(d.message || 'Gagal menyimpan program', true);
+    }
+  } catch (err) {
+    console.error('Error saving program:', err);
+    showToast('Terjadi kesalahan koneksi', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Simpan Program';
+  }
+}
+
+function editProgram(id) {
+  const p = programsList.find(x => x.id === id);
+  if (p) openProgramModal(p);
+}
+
+async function deleteProgram(id, code) {
+  if (!confirm(`Hapus / nonaktifkan Program Kit "${code}"?`)) return;
+
+  try {
+    const r = await api(`/api/mikms/programs/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.status === 'success' || d.success) {
+      showToast(d.message || 'Program berhasil dihapus');
+      await loadProgramsPage();
+      await loadPackageProgramsDropdown();
+    } else {
+      showToast(d.message || 'Gagal menghapus program', true);
+    }
+  } catch (err) {
+    showToast('Koneksi gagal', true);
+  }
+}
+
+/* Dynamic dropdown in Pesan Paket form */
+async function loadPackageProgramsDropdown() {
+  const select = document.getElementById('pkg-program');
+  if (!select) return;
+
+  try {
+    const r = await api('/api/mikms/programs?active_only=1');
+    const d = await r.json();
+    if (d.status === 'success' && d.data && d.data.length > 0) {
+      const currentVal = select.value;
+      select.innerHTML = d.data.map(p => `
+        <option value="${escHtml(p.code)}">${escHtml(p.name)} (${escHtml(p.code)}) — ${p.total_pcs || 0} pcs/paket</option>
+      `).join('');
+      if (currentVal && d.data.some(p => p.code === currentVal)) {
+        select.value = currentVal;
+      }
+    }
+  } catch(e) {
+    console.warn('Failed to load active programs for package order:', e);
   }
 }
 </script>
