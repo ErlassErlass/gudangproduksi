@@ -2547,10 +2547,15 @@ button, .btn, .sb-item, .pin-dot {
 
             <div class="form-control w-full">
               <div class="flex items-center justify-between mb-2">
-                <label class="label p-0"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Pilih Modul MIKMS Penyusun *</span></label>
+                <div class="flex items-center gap-2">
+                  <label class="label p-0"><span class="label-text text-[10px] font-bold uppercase tracking-wider text-base-content/60">Pilih Modul MIKMS Penyusun *</span></label>
+                  <button type="button" class="btn btn-ghost btn-xs text-[10px] text-primary underline p-0 h-auto min-h-0 font-bold" onclick="selectStandardModules()">M01–M07 (Std)</button>
+                  <span class="text-base-content/20 text-xs">|</span>
+                  <button type="button" class="btn btn-ghost btn-xs text-[10px] text-base-content/60 underline p-0 h-auto min-h-0" onclick="clearProgramModules()">Reset</button>
+                </div>
                 <span class="text-[11px] font-bold text-primary" id="prog-calc-pcs">Pilihan: 0 modul (~0 pcs)</span>
               </div>
-              <div class="grid grid-cols-2 gap-2 p-3 bg-base-200/50 rounded-xl border border-base-200 max-h-48 overflow-y-auto" id="prog-modules-checklist">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-base-200/50 rounded-xl border border-base-200 max-h-56 overflow-y-auto" id="prog-modules-checklist">
                 <!-- Checkboxes populated dynamically -->
               </div>
               <span class="text-[10px] text-base-content/50 mt-1">Minimal pilih 1 modul. Estimasi pcs komponen dihitung otomatis dari BOM.</span>
@@ -5444,17 +5449,17 @@ async function loadMikmsPage() {
 
     if (modRes.ok) {
       const d = await modRes.json();
-      if (d.success) mikmsModules = d.data || [];
+      if (d.status === 'success' || d.success) mikmsModules = d.data || [];
     }
 
     if (boxRes.ok) {
       const d = await boxRes.json();
-      if (d.success) mikmsBoxes = d.data || [];
+      if (d.status === 'success' || d.success) mikmsBoxes = d.data || [];
     }
 
     if (logRes.ok) {
       const d = await logRes.json();
-      if (d.success) mikmsLogs = d.data || [];
+      if (d.status === 'success' || d.success) mikmsLogs = d.data || [];
     }
 
     // Populate module dropdowns
@@ -6542,26 +6547,34 @@ async function adjustModuleStock() {
    ═════════════════════════════════════════════ */
 let programsList = [];
 
+async function ensureMikmsModulesLoaded() {
+  if (mikmsModules && mikmsModules.length > 0) return mikmsModules;
+  try {
+    const mr = await api('/api/mikms/modules');
+    if (mr.ok) {
+      const md = await mr.json();
+      if (md.status === 'success' || md.success) {
+        mikmsModules = md.data || [];
+      }
+    }
+  } catch(e) {
+    console.warn('Gagal memuat modul MIKMS:', e);
+  }
+  return mikmsModules;
+}
+
 async function loadProgramsPage() {
   const tbody = document.getElementById('programs-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-base-content/40">Memuat data program kit...</td></tr>';
 
   // Ensure mikmsModules is populated
-  if (!mikmsModules || mikmsModules.length === 0) {
-    try {
-      const mr = await api('/api/mikms/modules');
-      if (mr.ok) {
-        const md = await mr.json();
-        if (md.success) mikmsModules = md.data || [];
-      }
-    } catch(e) {}
-  }
+  await ensureMikmsModulesLoaded();
 
   try {
     const res = await api('/api/mikms/programs');
     const d = await res.json();
-    if (d.status === 'success') {
+    if (d.status === 'success' || d.success) {
       programsList = d.data || [];
       renderProgramsTable();
     } else {
@@ -6611,7 +6624,7 @@ function renderProgramsTable() {
   }).join('');
 }
 
-function openProgramModal(program = null) {
+async function openProgramModal(program = null) {
   document.getElementById('program-form').reset();
   const titleEl = document.getElementById('prog-modal-title');
   const codeEl = document.getElementById('prog-code');
@@ -6620,7 +6633,7 @@ function openProgramModal(program = null) {
   const descEl = document.getElementById('prog-desc');
   const activeEl = document.getElementById('prog-active');
 
-  renderProgramModulesChecklist(program ? (Array.isArray(program.modules) ? program.modules : []) : []);
+  const selectedCodes = program ? (Array.isArray(program.modules) ? program.modules : []) : [];
 
   if (program) {
     titleEl.textContent = `Edit Program: ${program.code}`;
@@ -6637,8 +6650,19 @@ function openProgramModal(program = null) {
     activeEl.value = '1';
   }
 
-  updateProgramCalcPcs();
+  // Buka modal segera agar interaksi responsif
   document.getElementById('program-modal').classList.add('modal-open');
+
+  // Render checklist langsung dengan data yang ada / fallback
+  renderProgramModulesChecklist(selectedCodes);
+  updateProgramCalcPcs();
+
+  // Jika modul belum dimuat dari API, muat dan render ulang
+  if (!mikmsModules || !mikmsModules.length) {
+    await ensureMikmsModulesLoaded();
+    renderProgramModulesChecklist(selectedCodes);
+    updateProgramCalcPcs();
+  }
 }
 
 function closeProgramModal() {
@@ -6648,35 +6672,92 @@ function closeProgramModal() {
 function renderProgramModulesChecklist(selectedCodes = []) {
   const container = document.getElementById('prog-modules-checklist');
   if (!container) return;
-  if (!mikmsModules || !mikmsModules.length) {
-    container.innerHTML = '<div class="col-span-2 text-xs text-base-content/50">Memuat daftar modul...</div>';
-    return;
-  }
 
-  container.innerHTML = mikmsModules.map(m => {
+  const defaultFallbackModules = [
+    { code: 'M01', name: 'Controller Kit', description: 'Micro:bit V2 dan kabel data' },
+    { code: 'M02', name: 'LED Kit', description: 'LED Merah, Hijau, Kuning & Resistor' },
+    { code: 'M03', name: 'Motion Kit', description: 'Servo SG90 180°, 360°, MG996R' },
+    { code: 'M04', name: 'Sensor Kit', description: 'Sensor Ultrasonik HC-SR04' },
+    { code: 'M05', name: 'Power Kit', description: 'Battery Holder & Baterai AAA' },
+    { code: 'M06', name: 'Mechanical Kit', description: 'Lego, Separator, dan Base Plate' },
+    { code: 'M07', name: 'Connection Kit', description: 'Breadboard Mini, Push Connector, Kabel' },
+    { code: 'M08', name: 'Jimu Trackbot', description: 'Robotik Kit Jimu Trackbot (Finish Good)' },
+    { code: 'M09', name: 'Erboblox', description: 'Erboblox Kit (Finish Good)' },
+    { code: 'M10', name: 'Arduino Learning Kit', description: 'Arduino Kit Assembly (Finish Good)' },
+    { code: 'M11', name: 'Sub-Assembly Kit', description: 'Sub-Assembly Kit Tambahan' }
+  ];
+
+  const list = (mikmsModules && mikmsModules.length > 0) ? mikmsModules : defaultFallbackModules;
+
+  container.innerHTML = list.map(m => {
     const isChecked = selectedCodes.includes(m.code) ? 'checked' : '';
+    const compCount = Array.isArray(m.components) && m.components.length > 0 ? `${m.components.length} komp` : '';
     return `
-      <label class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-base-100 cursor-pointer text-xs font-semibold select-none">
-        <input type="checkbox" name="prog_module_check" value="${escHtml(m.code)}" class="checkbox checkbox-xs checkbox-primary" ${isChecked} onchange="updateProgramCalcPcs()">
-        <span class="font-mono font-bold text-primary">${escHtml(m.code)}</span>
-        <span class="truncate text-base-content/80">${escHtml(m.name)}</span>
+      <label class="flex items-start gap-2.5 p-2 rounded-lg bg-base-100 hover:bg-base-200/80 border border-base-200 hover:border-primary/40 transition-all cursor-pointer text-xs select-none shadow-xs">
+        <input type="checkbox" name="prog_module_check" value="${escHtml(m.code)}" class="checkbox checkbox-xs checkbox-primary mt-0.5" ${isChecked} onchange="updateProgramCalcPcs()">
+        <div class="flex flex-col min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-1">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="font-mono font-black text-primary text-[11px]">${escHtml(m.code)}</span>
+              <span class="truncate text-base-content font-bold text-[11px]">${escHtml(m.name)}</span>
+            </div>
+            ${compCount ? `<span class="badge badge-ghost badge-xs text-[9px] font-mono shrink-0">${compCount}</span>` : ''}
+          </div>
+          ${m.description ? `<span class="text-[10px] text-base-content/50 truncate mt-0.5">${escHtml(m.description)}</span>` : ''}
+        </div>
       </label>
     `;
   }).join('');
 }
 
+function selectStandardModules() {
+  const std = ['M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07'];
+  document.querySelectorAll('input[name="prog_module_check"]').forEach(cb => {
+    cb.checked = std.includes(cb.value);
+  });
+  updateProgramCalcPcs();
+}
+
+function clearProgramModules() {
+  document.querySelectorAll('input[name="prog_module_check"]').forEach(cb => {
+    cb.checked = false;
+  });
+  updateProgramCalcPcs();
+}
+
 function updateProgramCalcPcs() {
   const checked = Array.from(document.querySelectorAll('input[name="prog_module_check"]:checked')).map(c => c.value);
   let total = 0;
-  if (typeof BOMS_DATA !== 'undefined' && BOMS_DATA.microbit) {
-    BOMS_DATA.microbit.forEach(item => {
-      checked.forEach(modCode => {
-        if (item.mod && item.mod.includes(modCode)) {
-          total += (item.qty || 1);
-        }
-      });
+
+  // 1. Hitung langsung dari komponen mikmsModules yang sudah dimuat
+  if (mikmsModules && mikmsModules.length) {
+    checked.forEach(modCode => {
+      const m = mikmsModules.find(x => x.code === modCode);
+      if (m && Array.isArray(m.components) && m.components.length > 0) {
+        m.components.forEach(c => {
+          total += (parseInt(c.quantity_per_module, 10) || 1);
+        });
+      }
     });
   }
+
+  // 2. Fallback jika data komponen belum tersedia di mikmsModules
+  if (total === 0 && typeof BOMS_DATA !== 'undefined') {
+    if (BOMS_DATA.microbit) {
+      BOMS_DATA.microbit.forEach(item => {
+        checked.forEach(modCode => {
+          if (item.mod && item.mod.includes(modCode)) {
+            total += (item.qty || 1);
+          }
+        });
+      });
+    }
+    if (checked.includes('M08') || checked.includes('RJ01')) total += 1;
+    if (checked.includes('M09') || checked.includes('ERB01')) total += 1;
+    if (checked.includes('M10') || checked.includes('ALK01')) total += 1;
+    if (checked.includes('M11')) total += 1;
+  }
+
   const calcEl = document.getElementById('prog-calc-pcs');
   if (calcEl) calcEl.textContent = `Pilihan: ${checked.length} modul (~${total} pcs/paket)`;
 }

@@ -46,6 +46,7 @@ class MikmsController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'success' => true,
             'data' => [
                 'stats' => [
                     'total_modules' => $totalModules,
@@ -95,7 +96,7 @@ class MikmsController extends Controller
             ];
         });
 
-        return response()->json(['status' => 'success', 'data' => $modules]);
+        return response()->json(['status' => 'success', 'success' => true, 'data' => $modules]);
     }
 
     /**
@@ -118,7 +119,7 @@ class MikmsController extends Controller
         }
 
         $boxes = $query->orderBy('box_code')->get();
-        return response()->json(['status' => 'success', 'data' => $boxes]);
+        return response()->json(['status' => 'success', 'success' => true, 'data' => $boxes]);
     }
 
     /**
@@ -451,7 +452,7 @@ class MikmsController extends Controller
                 $data = [];
         }
 
-        return response()->json(['status' => 'success', 'data' => $data]);
+        return response()->json(['status' => 'success', 'success' => true, 'data' => $data]);
     }
 
     // =============================================
@@ -827,7 +828,7 @@ class MikmsController extends Controller
             ];
         });
 
-        return response()->json(['status' => 'success', 'data' => $stocks]);
+        return response()->json(['status' => 'success', 'success' => true, 'data' => $stocks]);
     }
 
     /**
@@ -875,6 +876,7 @@ class MikmsController extends Controller
         $module = MikmsModule::find($validated['module_id']);
         return response()->json([
             'status' => 'success',
+            'success' => true,
             'message' => "Stok modul {$module->code} ({$module->name}) disesuaikan: {$stockBefore} → {$newStock}",
             'data' => $moduleStock,
         ]);
@@ -893,7 +895,7 @@ class MikmsController extends Controller
         }
 
         $orders = $query->latest()->paginate(20);
-        return response()->json(['status' => 'success', 'data' => $orders]);
+        return response()->json(['status' => 'success', 'success' => true, 'data' => $orders]);
     }
 
     // =============================================
@@ -912,6 +914,7 @@ class MikmsController extends Controller
         $programs = $query->orderBy('name')->get();
         return response()->json([
             'status' => 'success',
+            'success' => true,
             'data' => $programs,
         ]);
     }
@@ -941,6 +944,7 @@ class MikmsController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'success' => true,
             'message' => "Program Kit {$program->name} ({$program->code}) berhasil ditambahkan.",
             'data' => $program,
         ], 201);
@@ -972,6 +976,7 @@ class MikmsController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'success' => true,
             'message' => "Program Kit {$program->code} berhasil diperbarui.",
             'data' => $program,
         ]);
@@ -994,6 +999,7 @@ class MikmsController extends Controller
             $program->save();
             return response()->json([
                 'status' => 'success',
+                'success' => true,
                 'message' => "Program {$code} dinonaktifkan karena telah memiliki riwayat transaksi.",
                 'data' => $program,
             ]);
@@ -1002,6 +1008,7 @@ class MikmsController extends Controller
         $program->delete();
         return response()->json([
             'status' => 'success',
+            'success' => true,
             'message' => "Program {$code} berhasil dihapus permanen.",
         ]);
     }
