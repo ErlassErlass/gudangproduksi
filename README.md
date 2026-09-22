@@ -25,16 +25,17 @@ Aplikasi menerapkan arsitektur navigasi **Unified Pipeline** yang menyelaraskan 
 | Modul / Fitur | Deskripsi Teknis |
 |:---|:---|
 | **📊 Dashboard Terpadu** | Ringkasan statistik real-time gudang reguler, widget live MIKMS (Total Boks, Modul Jadi Siap, Pesanan Bulan Ini, Unit di Lapangan), grafik mutasi 30 hari (Chart.js), dan shortcut aksi cepat mobile. |
-| **📷 Scan QR & Barcode** | Pemindaian kode barang otomatis via kamera web/mobile menggunakan engine `jsQR` berpresisi tinggi dengan deteksi auto-fill instan ke formulir transaksi. |
+| **⚡ Universal Smart Scanner Hub (`/#scan`)** | **1 Pintu Operasional Terpadu**: Menggabungkan scan barang masuk (+) dan keluar (-) dalam 1 layar. Otomatis mengenali produk Finish Goods vendor (Jimu, Erboblox, Arduino) untuk menerbitkan nomor seri resmi berurutan (`qc_pending`) dan cetak stiker thermal batch instan. |
 | **⚙️ Perakitan Modul MIKMS (BOM)** | Pengelolaan perakitan modul elektronik (M01 Controller, M02 LED, M03 Motion, M07 Connection, dsb) berbasis standar Bill of Materials (BOM) dengan pengurangan otomatis stok komponen bahan mentah. |
-| **📦 Cascading Multi-Level BOM** | Otomasi pesanan paket kit utuh (misal: 5 Microbit Learning Kit / MLK): sistem memprioritaskan pengurangan stok modul jadi yang siap pakai (`mikms_module_stocks`), dan secara otomatis mem-breakdown modul yang belum dirakit ke komponen dasar (*raw materials*). |
+| **📦 Cascading Multi-Level BOM** | Otomasi pesanan paket kit utuh (misal: Microbit Learning Kit / MLK): sistem memprioritaskan pengurangan stok modul jadi yang siap pakai (`mikms_module_stocks`), dan secara otomatis mem-breakdown modul yang belum dirakit ke komponen dasar (*raw materials*). |
 | **📋 Master Program Kit** | Pengelolaan paket program kurikulum kit dinamis (misal: MLK, ROBOTIC, STEAM, IoT) yang menyusun modul-modul MIKMS (M01-M11) dengan kalkulasi estimasi total pcs komponen real-time. Terintegrasi langsung ke dropdown pesanan paket. |
-| **✅ Quality Control (QC)** | Pencatatan verifikasi kelayakan modul pasca-produksi sebelum dimasukkan ke dalam boks kit siap distribusi sekolah. |
-| **🚚 Distribusi & Sirkulasi Sekolah** | Surat jalan pengiriman boks kit ke sekolah/mitra (`mikms_shipments`), pencatatan pengembalian/retur (`mikms_returns`), serta pencatatan boks kit bermasalah ke antrean reparasi (`mikms_repairs`). |
-| **🔄 Modul Sewa & Unit Bekas** | Pelacakan unit asset terserialisasi (*Serialized Asset Tracking*) dengan riwayat mutasi antar-lokasi, peminjaman/sewa keluar (*rent-out*), pengembalian (*rent-return*), dan kartu riwayat unit individu. |
+| **✅ Quality Control (QC Unit Checklist)** | Verifikasi kelayakan unit berbasis checklist Pass/Fail tanpa field kuantiti dinamis per tipe produk. Unit lolos otomatis berstatus `in_stock`. |
+| **🎁 Bundling Packaging ROBO (Opsi A)** | Pairing 1 unit MLK ready + 1 unit JIMU ready menjadi 1 kemasan boks luar `ROBO-xxxxx` dengan stiker thermal ringkas 2 kolom dan sinkronisasi cascading dispatch/return. |
+| **🔄 Modul Sewa Finish Goods (SOP-SEWA-01)** | Pelacakan unit asset terserialisasi dari stok unit kita (`in_stock`). Restriksi ketat sewa keluar (hanya berstatus `good`). Unit yang kembali dari sewa **Otomatis Wajib QC Ulang** dan diblokir dari sewa keluar sampai lolos inspeksi QC MIKMS. |
+| **📑 Kepatuhan SOP Resmi PT Erlass 2026** | Penyelarasan dokumen transaksi resmi: Surat Pesanan (SP & MoU), Form Permintaan Barang, Surat Jalan / DO 3 Rangkap (Akunting, Arsip Gudang, Pelanggan terstempel resmi), serta Form Retur 3 rangkap berlampirkan Mapping QC Barang Baik vs Rusak. |
 | **🏢 Multi-Warehouse Management** | Manajemen multi-gudang (Gudang Utama, Gudang Bahan Baku / Raw Material, Gudang Modul Jadi / WIP, Gudang Sewa & Lapangan). |
 | **📄 Kartu Stok Terpadu & Audit** | Rekap kartu stok running-balance per item per gudang per tahun, pencatatan stock opname fisik, serta ekspor laporan PDF (`barryvdh/laravel-dompdf`) dan Excel (`maatwebsite/laravel-excel`). |
-| **🖨️ Cetak QR Stiker Presisi** | Generator label QR stiker (satuan atau antrean cetak massal) siap cetak langsung dari browser dengan format tata letak kiri-atas ramah printer thermal/kertas stiker. |
+| **🖨️ Cetak Stiker Thermal & Grid 1x1cm** | Format stiker boks 2 kolom (54-58mm / 80mm) dan stiker mikro 1cm × 1cm format grid lembaran (sheet) untuk PCB Micro:bit V2 agar aset tidak tertukar. |
 | **📶 Offline Sync & PWA** | Menggunakan Web Service Worker (`sw.js`) dan antrean transaksi lokal (`localStorage`) untuk memungkinkan pencatatan mutasi di area minim sinyal dengan sinkronisasi otomatis saat online kembali. |
 
 ---

@@ -1576,6 +1576,155 @@ Menghapus Program Kit. Jika program telah memiliki riwayat transaksi (pesanan pa
 
 ---
 
+### 12.13 Finish Goods, Unit Registry, QC Checklist & Bundling API
+
+#### GET `/mikms/products`
+Mengambil 5 produk Finish Goods aktif beserta rekap saldo stok unitnya.
+
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "code": "MLK",
+      "name": "Microbit Learning Kit",
+      "type": "assembled",
+      "can_rent": true,
+      "stock": { "in_stock": 25, "qc_pending": 3, "dispatched": 10, "repair": 1, "total": 39 }
+    },
+    {
+      "id": 2,
+      "code": "ROBO",
+      "name": "Robotic Explorer",
+      "type": "bundle",
+      "can_rent": true,
+      "stock": { "in_stock": 12, "qc_pending": 1, "dispatched": 5, "repair": 0, "total": 18 }
+    }
+  ]
+}
+```
+
+#### GET `/mikms/qc-templates/{productId}`
+Mengambil template poin checklist QC untuk jenis produk tertentu.
+
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "data": {
+    "product": { "id": 1, "code": "MLK", "name": "Microbit Learning Kit" },
+    "checklist": [
+      { "id": 1, "check_item": "Bodi boks kit & penutup boks mulus tanpa retak", "sort_order": 1 },
+      { "id": 2, "check_item": "Micro:bit V2 power ON & LED matrix menyala", "sort_order": 2 }
+    ]
+  }
+}
+```
+
+#### POST `/mikms/direct-input`
+Mencatat penerimaan batch produk langsung dari vendor (Jimu, Erboblox, Arduino) dan men-generate nomor seri berurutan dengan status awal `qc_pending`. Endpoint ini dipanggil secara otomatis oleh **Universal Smart Scanner Hub (`/#scan`)** saat pencatatan transaksi **Barang Masuk (+)** untuk produk Finish Goods vendor.
+
+**Request**:
+```json
+{
+  "input_date": "2026-09-21",
+  "product_id": 3,
+  "quantity": 10,
+  "supplier": "PT. Vendor Robotik",
+  "received_by": "Budi Gudang",
+  "notes": "Kemasan tersegel aman"
+}
+```
+
+**Response (201 Created)**:
+```json
+{
+  "status": "success",
+  "message": "10 unit Jimu Trackbot berhasil diinput. Serial: JIMU-00001 s/d JIMU-00010. Status: Menunggu QC.",
+  "data": {
+    "serial_numbers": ["JIMU-00001", "JIMU-00002", "..."],
+    "count": 10
+  }
+}
+```
+
+#### GET `/mikms/units`
+List unit registry dengan filter dan pagination.
+- Query params: `product_id`, `status`, `search` (serial), `page`.
+
+#### GET `/mikms/units/{serial}`
+Mengambil detail satu unit beserta riwayat QC, dispatch, unit induk (`parent`), dan unit anak (`children`).
+
+#### POST `/mikms/qc-logs`
+Menyimpan hasil inspeksi checklist QC unit fisik (Pass/Fail).
+
+**Request**:
+```json
+{
+  "serial_number": "MLK-00001",
+  "qc_date": "2026-09-21",
+  "checked_by": "Teknisi QC",
+  "qc_type": "production",
+  "checklist_results": [
+    { "item": "Bodi boks kit mulus", "pass": true },
+    { "item": "Micro:bit V2 power ON", "pass": true }
+  ],
+  "defect_notes": null
+}
+```
+
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "message": "QC Unit MLK-00001: LOLOS. Status unit diperbarui.",
+  "data": { "unit_status": "in_stock", "status_qc": "LOLOS" }
+}
+```
+
+#### GET `/mikms/bundle/available-units`
+Mengambil daftar nomor seri unit `MLK` dan `JIMU` yang berstatus `in_stock` dan belum terikat kemasan boks luar.
+
+#### POST `/mikms/bundle-unit`
+Mengemas (pairing) 1 unit MLK + 1 unit JIMU menjadi 1 boks luar Robotic Explorer (ROBO).
+
+**Request**:
+```json
+{
+  "mlk_serial": "MLK-00001",
+  "jimu_serial": "JIMU-00001",
+  "packaged_by": "Ahmad Packaging",
+  "notes": "Busa pelindung terpasang rapat"
+}
+```
+
+**Response (201 Created)**:
+```json
+{
+  "status": "success",
+  "message": "Boks Packaging Robotic Explorer berhasil dibuat: ROBO-00001 (berisi MLK-00001 + JIMU-00001). Status: Menunggu QC.",
+  "data": {
+    "serial_number": "ROBO-00001",
+    "mlk_serial": "MLK-00001",
+    "jimu_serial": "JIMU-00001"
+  }
+}
+```
+
+#### POST `/mikms/dispatch`
+Pengeluaran unit (sewa / beli) dari gudang.
+- Otomatis mengubah status unit menjadi `dispatched`.
+- Jika unit bertipe bundle (ROBO), seluruh unit anak di dalamnya ikut ditandai `dispatched`.
+
+#### POST `/mikms/dispatch/return`
+Pencatatan retur unit sewa yang kembali ke gudang.
+- Mengubah status unit menjadi `returned`.
+- Otomatis menandai unit wajib menjalani QC ulang sebelum dapat masuk ke `in_stock`.
+
+---
+
 ## 13. Error Responses
 
 Semua error menggunakan format konsisten:

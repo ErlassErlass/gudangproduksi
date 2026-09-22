@@ -852,3 +852,198 @@ Saat pengguna berpindah tab dari dalam halaman MIKMS melalui tombol tab bar hori
 - Sidebar link yang bersesuaian (`#sb-link-mk-{tab}`) otomatis aktif dan disorot dengan warna primer.
 - Judul topbar diperbarui mengikuti nama sub-aktivitas tab aktif.
 - Tombol tab aktif di-scroll secara halus ke posisi tengah layar pada perangkat bergerak (mobile).
+
+---
+
+## 20. Sistem Finish Goods, Unit Registry, QC Checklist & Bundling (Versi 3.8)
+
+### 20.1 Konsep 5 Finish Goods & Unit Registry
+Sistem memisahkan barang mentah (*raw materials* / `rw`) dengan barang jadi siap edar (*finish goods*). Terdapat 5 produk resmi:
+1. **Microbit Learning Kit (MLK)**: Dirakit dari modul-modul MIKMS (M01-M07). Tipe: `assembled`.
+2. **Jimu Trackbot (JIMU)**: Kit robotik dari vendor, masuk langsung tanpa rakit. Tipe: `direct`.
+3. **Erboblox (ERBO)**: Kit konstruksi dari vendor, masuk langsung tanpa rakit. Tipe: `direct`.
+4. **Arduino Learning Kit (ALK)**: Kit mikrokontroler dari vendor, masuk langsung tanpa rakit. Tipe: `direct`.
+5. **Robotic Explorer (ROBO)**: Paket bundle kemasan khusus yang menggabungkan 1 unit MLK + 1 unit JIMU. Tipe: `bundle`.
+
+Setiap unit fisik yang masuk atau dirakit dicatat di **Unit Registry (`mikms_units`)** dengan nomor seri unik global berurutan (`MLK-00001`, `JIMU-00001`, `ROBO-00001`).
+
+### 20.2 Alur Penerimaan Produk Vendor (Universal Smart Scanner Hub & Direct Input)
+Untuk produk bertipe `direct` (Jimu, Erboblox, Arduino Learning Kit):
+1. **Satu Pintu Masuk:** Penerimaan produk vendor kini terintegrasi langsung di **Universal Smart Scanner Hub (`/#scan`)**. Tab input manual terpisah di modul MIKMS telah dilebur agar alur kerja gudang menjadi satu pintu terpadu.
+2. Petugas memindai atau mengetik kode/nama barang (contoh `RJ01`, `ERBO01`, `ALK01` atau kata kunci `JIMU`, `ERBO`, `ALK`).
+3. Sistem secara cerdas mendeteksi bahwa item merupakan Finish Goods Vendor MIKMS dan menampilkan badge `🤖 FINISH GOOD: {Nama} ({Kode})` serta petunjuk otomatisasi serial.
+4. Pada aksi **Barang Masuk (+)**, petugas memasukkan jumlah unit, sumber/vendor, dan catatan opsional.
+5. Tombol aksi menampilkan `[ ↓ Catat Barang Masuk & Terbitkan Serial MIKMS (+N) ]`.
+6. Saat disimpan:
+   - Mutasi stok barang diupdate dan dicatat dalam log inventaris gudang.
+   - Sistem otomatis memanggil API `POST /api/mikms/direct-input` untuk menerbitkan nomor seri resmi berurutan (`JIMU-xxxxx`, `ERBO-xxxxx`, `ALK-xxxxx`) dengan status awal `qc_pending` (Menunggu QC).
+   - Banner interaktif langsung tampil di layar scanner, menyediakan tombol instan **🖨️ Cetak Semua Stiker Thermal (N Label)** dan **✅ Buka QC Checklist Unit Pertama**.
+
+### 20.3 Alur Packaging & Bundling Robotic Explorer (Opsi A)
+Robotic Explorer memiliki **kemasan/boks luar tersendiri**:
+1. Petugas membuka tab **🎁 Packaging ROBO**.
+2. Sistem memuat daftar unit `MLK` dan `JIMU` yang sudah lolos QC (`in_stock`) dan belum terikat kemasan lain.
+3. Petugas memilih/scan 1 unit MLK dan 1 unit JIMU, lalu mengklik **Kemas Boks & Generate Serial ROBO**.
+4. Sistem men-generate serial boks luar baru (`ROBO-00001`) dengan status `qc_pending`.
+5. Kedua unit anak (`MLK` dan `JIMU`) dikaitkan melalui `parent_unit_id` dan statusnya berubah menjadi `bundled`.
+6. Stiker boks luar mencantumkan referensi isi kemasan (`MLK: MLK-xxxxx | JIMU: JIMU-xxxxx`).
+7. Saat boks luar `ROBO` di-dispatch atau diretur, status unit anak otomatis tersinkronisasi (cascading dispatch/return).
+
+### 20.4 Standar QC Checklist per Unit
+1. Seluruh unit wajib melalui inspeksi QC sebelum masuk ke status `in_stock` (stok siap pakai).
+2. Format pengujian menggunakan **Checklist Pass / Fail per poin pengujian (tanpa field kuantiti)**.
+3. Template checklist diambil secara dinamis dari database (`mikms_qc_checklist_templates`) sesuai jenis produk.
+4. **Aturan Kelulusan**:
+   - Jika **seluruh poin tercentang LULUS**, unit dinyatakan `LOLOS` dan status unit otomatis berubah menjadi `in_stock`. Sistem langsung menawarkan cetak stiker thermal unit.
+   - Jika **ada salah satu poin GAGAL**, unit dinyatakan `TIDAK LOLOS` dan status unit tetap `qc_pending` atau dialihkan ke antrean `repair`. Petugas diwajibkan mengisi Catatan Defek.
+
+### 20.5 Standar Stiker Label Identitas Produksi
+1. **Stiker Boks Luar (Thermal 54mm–58mm / 80mm — Format Ringkas 2 Kolom)**:
+   - Baris 1: Nama Produk Finish Good (misal `Robotic Explorer`, `Microbit Learning Kit`).
+   - Baris 2: Serial Number Utama boks luar berukuran besar dan tebal (`ROBO-00001`).
+   - Kolom Kiri: QR Code 2D (meng-encode serial number unit untuk scanner 2D / kamera).
+   - Kolom Kanan: Detail QC (`QC: ✓ PASSED`, `TGL: YYYY-MM-DD`, `BY: <Teknisi>`, `OPS: SEWA / BELI`).
+   - Khusus boks bundle ROBO: Rincian isi kemasan (`MLK: MLK-xxxxx | JIMU: JIMU-xxxxx`).
+2. **Stiker Penanda Board Micro:bit (1cm × 1cm / 10mm × 10mm — Grid Sheet Opsi A)**:
+   - Dicetak dalam format lembaran grid (sheet) dengan garis pemotong tipis (dashed grid).
+   - Memuat **Micro QR Code** (7mm × 7mm) + Teks Serial mikro di bawahnya (`font-size: 4.8px`, monospaced tebal).
+   - Ditempelkan pada bagian belakang PCB board Micro:bit V2 agar aset tidak tertukar.
+
+### 20.6 Ketentuan Sewa Hanya pada Finish Goods & Pure Produksi
+1. **Sewa Hanya Berlaku di Level Finish Goods**:
+   - Transaksi atau opsi sewa **hanya terjadi pada unit fisik barang jadi (Finish Goods)**:
+     - Di modul MIKMS: Hanya unit fisik terdaftar di `mikms_units` yang berstatus `in_stock`, lulus QC, dan produknya memiliki flag `can_rent = true` yang dapat di-dispatch sebagai `sewa`.
+     - Di modul Sewa & Asset GudangScan: Pendaftaran unit asset sewa (`tipe_kepemilikan = 'sewa'`) dan transaksi `rentOut` hanya menerima item berkategori Finish Goods. Sistem secara ketat menolak bahan baku mentah (RW), modul intermediate, tools, dan packaging.
+   - Modul M01–M07 dan komponen raw material (RW) adalah inventori internal untuk kebutuhan perakitan dan suku cadang maintenance (repair). **Modul dan komponen RW tidak boleh disewakan secara mandiri**.
+2. **Sistem MIKMS adalah Pure Produksi & Inventori**:
+   - Menghilangkan seluruh SOP dan dependensi ke alur distribusi/pengiriman sekolah.
+   - Form perakitan, input produk, dan QC murni bekerja secara agnostik berbasis Serial Number Global.
+   - Tanggung jawab tim gudang MIKMS selesai saat unit lulus QC dan disimpan ke rak barang jadi dengan status `in_stock`. Pengiriman/distribusi eksternal ditangani oleh sistem logistik umum terpisah.
+3. **Terminologi Standar**:
+   - `rak` diganti dengan **`rw` (raw material)**.
+   - `pcs` diganti dengan **`item`** (khusus modul & kit MIKMS).
+   - Kolom Komponen di Master Barang berfungsi sebagai penghubung bahan baku gudang dengan resep modul BOM MIKMS.
+
+---
+
+## 21. SOP & Logika Bisnis Modul Sewa Finish Goods & Kebijakan Wajib QC Ulang (Versi 3.9)
+
+### 21.1 Alur Penerimaan Asset Baru (Input Sewa Masuk dari Stok MIKMS)
+1. **Sumber Data Serial Number**:
+   - Nomor seri yang didaftarkan ke modul aset sewa **wajib berasal dari unit fisik Finish Goods MIKMS** (`mikms_units`) yang berstatus `in_stock`, produknya berstatus aktif dengan `can_rent = true`, dan belum pernah didaftarkan ke tabel `assets`.
+   - Endpoint: `GET /api/units-for-sewa` mengembalikan daftar unit Finish Goods yang siap didaftarkan lengkap dengan mapping ID Master Barang (`item_id`).
+2. **Antarmuka Dropdown Terintegrasi (UI/UX)**:
+   - Kolom *Serial Number / Asset Tag* pada form Penerimaan Asset Baru menggunakan **Dropdown Selector (`sewain-serial-select`)**.
+   - Saat memilih **Master Barang (Finish Goods)** (misal `Robotic Explorer`), opsi serial number otomatis tersaring hanya menampilkan unit milik produk tersebut (`ROBO-00001`, `ROBO-00002`, dst.).
+   - Jika serial dipilih terlebih dahulu dari dropdown, Master Barang dan kondisi `Good` otomatis terpilih.
+   - Tersedia tombol `[ 🔄 Ketik/Scan Manual ]` untuk beralih ke input barcode scanner dengan bantuan autocomplete `<datalist>`.
+3. **Validasi Backend (`AssetController::store`)**:
+   - Untuk aset bertipe `sewa`, sistem memvalidasi bahwa serial number harus ada di tabel `mikms_units` dengan status `in_stock`. Pendaftaran nomor seri palsu/acak ditolak seketika (HTTP 422).
+
+### 21.2 Aturan Transaksi Sewa Keluar (Hanya dari List Asset Sewa & Lolos QC)
+1. **Enforcement List Asset Sewa**:
+   - Unit yang dapat disewakan keluar **HANYALAH unit yang telah terdaftar di list masuk aset barang sewa** (`tipe_kepemilikan = 'sewa'`).
+   - Upaya mengeluarkan unit non-sewa (misal bekas atau barang lepasan) ditolak oleh sistem.
+2. **Blokir Unit Bermasalah & Belum QC**:
+   - Jika unit terikat pada `mikms_units` dan memiliki status `qc_pending`, `returned`, atau `repair` (atau status aset `not_good`), transaksi sewa keluar **DIBLOKIR TOTAL** dengan pesan:
+     > *"Unit {serial} dalam status WAJIB QC ULANG ({status}). Harus lolos QC terlebih dahulu sebelum dapat disewakan kembali."*
+3. **Pembaruan Status Sukses (`AssetController::rentOut`)**:
+   - `$asset->is_rented = true`
+   - `$mikms_unit->status = 'dispatched'`
+   - Dicatat pada tabel `transactions` sebagai transaksi keluar (sewa).
+
+### 21.3 Alur Sewa Kembali (Retur Sewa) & Kebijakan Wajib QC Ulang
+1. **Otomasi Status Pengembalian (`AssetController::rentReturn`)**:
+   - Saat transaksi sewa kembali diproses, sistem otomatis melakukan pembaruan:
+     - `$asset->is_rented = false`
+     - `$asset->status = 'not_good'` (kondisi fisik & kelengkapan part belum diverifikasi)
+     - `$mikms_unit->status = 'qc_pending'` (**WAJIB QC ULANG**)
+   - Catatan transaksi menyertakan penanda: `Pengembalian barang sewa (Wajib QC Ulang)`.
+2. **Penguncian di Antarmuka Pengguna**:
+   - Unit berstatus `qc_pending` / `not_good` ditandai dengan badge peringatan kuning ⚠️ `Wajib QC Ulang` di tabel data aset dan tidak akan muncul di katalog unit ready sewa keluar.
+   - Disediakan tombol aksi cepat **[🔍 Lakukan QC Ulang]** yang langsung membuka tab QC Unit MIKMS.
+
+### 21.4 Prosedur Inspeksi QC Ulang di Menu QC Unit MIKMS
+1. **Tipe QC Khusus Sewa Kembali (`rental_return`)**:
+   - Pada tab **QC Unit MIKMS**, pemeriksa memilih tipe inspeksi `rental_return` ("QC Ulang Setelah Sewa Kembali").
+   - Template checklist pengujian memuat butir kelayakan fisik boks, keutuhan komponen modul, fungsi sistem daya/baterai, dan konektivitas.
+2. **Kondisi Kelulusan (PASS) vs Kegagalan (FAIL)**:
+   - **Jika Seluruh Checklist Lulus (PASS)**:
+     - `mikms_units.status` otomatis kembali menjadi `in_stock`.
+     - `assets.status` otomatis kembali menjadi `good` (**Ready Sewa**).
+     - Blokir sewa keluar seketika terbuka dan unit siap dipinjamkan kembali.
+   - **Jika Ada Checklist yang Gagal (FAIL)**:
+     - `mikms_units.status` dialihkan ke `repair` (antrean perbaikan teknisi).
+     - `assets.status` tetap `not_good`.
+     - Unit dialokasikan ke teknisi untuk pergantian suku cadang dari bahan mentah RW.
+
+---
+
+## 22. Standar Operasional Prosedur (SOP) Resmi PT Erlass Proaktif Indonesia 2026
+
+Berdasarkan dokumen operasional korporat `SOP PT ERLASS 2026.xlsx`, seluruh aktivitas pengadaan, penerimaan vendor, perakitan, pengiriman pesanan, pereturan, hingga penagihan diikat dalam matriks dokumen transaksi resmi dan jenjang otorisasi ketat.
+
+### 22.1 Alur Pesanan Pelatihan & Produk (SWA & Non-SWA)
+1. **Pembuatan Surat Pesanan (SP)**:
+   - Dibuat oleh **Salesman** berdasarkan kesepakatan dengan sekolah/mitra.
+   - **Jenjang Otorisasi Tanda Tangan Wajib**: Salesman ➔ Group Leader (GL) ➔ Manager Erlass.
+   - **Klausul Pelayanan**: SP yang telah ditandatangani oleh Manager Erlass sah untuk diproses dan dilayani oleh bagian administrasi dan gudang.
+   - **Kelengkapan Wajib**: Setiap SP wajib melampirkan **MoU / SPK** resmi (2 rangkap: 1 untuk Sekolah, 1 untuk PT Erlass).
+2. **Pencatatan Dokumen Pesanan**:
+   - Diterima oleh **Admin Marketing** (Surat Pesanan fisik: Salinan untuk Admin Marketing, Asli untuk Akunting).
+   - Data diinput ke sistem mencakup: No SP, Biodata Pelanggan (Kode Langganan / KodLan, Nama Langganan / NamLan, Nama PIC, No HP), Nomor MoU/SPK, Jadwal Pelatihan/Kegiatan, Jumlah Peserta per Kelas, Harga Pelatihan & Produk, serta Masa Kontrak.
+
+### 22.2 Alur Pengiriman Produk (Surat Jalan / DO 3 Rangkap)
+1. **Permintaan Pengeluaran Barang**:
+   - Admin Gudang menerima permintaan produk dari salesman berlandaskan SP yang telah diotorisasi (Salesman, GL, Manager Marketing).
+   - Admin Marketing menerbitkan **Form Permintaan Barang (3 rangkap)** yang diarsipkan di Admin Gudang.
+2. **Penerbitan Surat Jalan / Delivery Order (DO)**:
+   - Admin Gudang menyiapkan fisik barang dan menginput Surat Jalan / DO dengan melampirkan SP.
+   - **Distribusi DO Resmi (3 Rangkap)**:
+     - **Rangkap 1**: Bagian Akunting (sebagai bukti pengiriman untuk penagihan/faktur).
+     - **Rangkap 2**: Arsip Bagian Gudang.
+     - **Rangkap 3**: Pelanggan / Mitra Penerima.
+   - **Klausul Otorisasi Pengeluaran & Penerimaan Fisik**:
+     - Pada saat barang keluar dari gudang, DO wajib ditandatangani oleh: **Admin Gudang**, **Petugas Pengirim/Ekspedisi**, dan **Satpam/Security**.
+     - Pada saat barang tiba di lokasi pelanggan, pihak sekolah/pelanggan sebagai penerima barang **WAJIB MENANDATANGANI DAN MEMBUBUHKAN CAP STEMPEL RESMI** sekolah/toko pada lembar DO.
+3. **Penyetoran DO ke Akunting**:
+   - DO yang telah diterima dan dicap stempel oleh pelanggan diarsipkan oleh gudang dan diserahkan kepada Bagian Akunting secara berkala (setiap hari Kamis).
+
+### 22.3 Alur Pereturan Produk Jual & Sewa (Form Retur 3 Rangkap & Mapping QC)
+1. **Penerimaan Fisik & Form Retur**:
+   - Admin Gudang menerima fisik produk retur beserta **Form Retur Produk (3 Rangkap)**:
+     - Rangkap 1: Akunting
+     - Rangkap 2: Arsip Admin Gudang
+     - Rangkap 3: Pertinggal Pelanggan
+   - **Jenjang Otorisasi Form Retur**: Wajib ditandatangani oleh: Pelanggan, Salesman, Group Leader, Manager Erlass, Admin Gudang, dan otorisasi verifikasi akhir oleh **Akunting**.
+2. **Pemeriksaan Jumlah Fisik**:
+   - Admin Gudang mencocokkan jumlah fisik yang diterima dengan jumlah yang tertulis pada Form Retur.
+   - Jika jumlah sesuai ➔ ditandatangani oleh Admin Gudang.
+   - Jika terdapat selisih jumlah ➔ Admin Gudang wajib langsung mengonfirmasi ke Salesman.
+3. **Pemeriksaan Kualitas & Mapping oleh Tim QC**:
+   - Fisik barang retur diserahkan kepada **Tim QC** untuk dilakukan mapping kelayakan:
+     - Setiap barang retur wajib diberi label identitas penanda asal sekolah/mitra pengirim.
+     - Tim QC memisahkan fisik barang menjadi 2 kelompok:
+       1. **Barang Baik**: Dilakukan inspeksi ulang di tab *QC Unit MIKMS* (tipe `rental_return`). Jika lolos (PASS), barang diserahkan kembali ke gudang menggunakan **Form Serah Terima** untuk dimasukkan kembali ke persediaan barang jadi (`in_stock`).
+       2. **Barang Rusak / Cacat**: Diteruskan ke teknisi reparasi untuk penggantian suku cadang dari bahan mentah RW atau diajukan pembatalan nota/klaim garansi ke vendor.
+
+### 22.4 Alur Penagihan & Pembayaran Produk
+1. **Kelengkapan Dokumen Penagihan**:
+   - Bagian Akunting & Keuangan mencetak Invoice (3 rangkap: Rangkap 1 Putih untuk Pelanggan, Rangkap 2 untuk Admin Akt & Keu, Rangkap 3 untuk Arsip Akunting).
+   - Penagihan ke pelanggan **WAJIB MELAMPIRKAN**:
+     - Surat Jalan / DO Asli yang telah dibubuhi **Tanda Tangan & Cap Stempel Resmi Pelanggan**.
+     - Bukti Tanda Terima Pembayaran (KTPB).
+     - Kwitansi & Faktur resmi.
+2. **Pelaksanaan Penagihan**:
+   - Penagihan dilakukan oleh Marketing/Salesman berdasarkan Invoice resmi dari bagian keuangan satu minggu sekali setelah barang diterima pelanggan.
+
+### 22.5 Rekapitulasi Sinkronisasi Sistem GudangScan dengan SOP 2026
+| Aspek Operasional | Prosedur Manual SOP 2026 | Implementasi Digital ErlassGudangApp |
+|:---|:---|:---|
+| **Penerimaan Barang Vendor** | Input manual form penerimaan barang | **Universal Smart Scanner Hub (`/#scan`)**: 1 pintu scan masuk (+), otomatis generate serial MIKMS 5-digit berurutan (`qc_pending`) & cetak label thermal batch. |
+| **Penerimaan Komponen Mentah** | Pencatatan kartu stok gudang bahan | Scan Masuk (+) komponen kode `RW` memotong/menambah saldo running-balance kartu stok seketika. |
+| **Perakitan Kit Jadi** | BOM modul & kit fisik | Modul MIKMS (Perakitan Kit MLK): Cascading auto-deduction bahan baku mentah (RW) dan modul jadi. |
+| **Kontrol Kualitas (QC)** | Form checklist pengujian part | QC Unit Checklist Pass/Fail dinamis per produk. Kelulusan otomatis mengalihkan status ke `in_stock`. |
+| **Pengiriman Barang** | Form Permintaan Barang & DO 3 Rangkap | Universal Scanner Hub Mode Keluar (-), cetak Surat Jalan sistem, validasi stok riil real-time. |
+| **Sewa Finish Goods** | Pencatatan aset sewa & kontrak | Serial number wajib dari unit Finish Goods lolos QC kita (`in_stock`). Restriksi keluar hanya untuk status `good`. |
+| **Retur Sewa** | Form Retur 3 rangkap & Mapping QC | Sistem otomatis mengunci status ke **Wajib QC Ulang** (`qc_pending` & `not_good`). Terkunci total sampai teknisi lulus QC ulang di MIKMS. |

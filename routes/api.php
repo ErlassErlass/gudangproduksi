@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/assets/rent-return', [AssetController::class, 'rentReturn']);
     Route::post('/assets/{id}/status', [AssetController::class, 'updateStatus']);
     Route::get('/assets/{id}/card', [AssetController::class, 'getAssetCard']);
+    Route::get('/units-for-sewa', [\App\Http\Controllers\Api\MikmsController::class, 'getUnitsAvailableForSewa']);
 
     // MIKMS (Micro:bit Kit Management System)
     Route::prefix('mikms')->group(function () {
@@ -81,6 +82,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/programs', [\App\Http\Controllers\Api\MikmsController::class, 'storeProgram']);
         Route::put('/programs/{id}', [\App\Http\Controllers\Api\MikmsController::class, 'updateProgram']);
         Route::delete('/programs/{id}', [\App\Http\Controllers\Api\MikmsController::class, 'deleteProgram']);
+
+        // Finish Goods — 5 Produk
+        Route::get('/products', [\App\Http\Controllers\Api\MikmsController::class, 'getProducts']);
+        Route::get('/qc-templates/{productId}', [\App\Http\Controllers\Api\MikmsController::class, 'getQcTemplates']);
+
+        // Direct Input — Jimu, Erboblox, Arduino
+        Route::post('/direct-input', [\App\Http\Controllers\Api\MikmsController::class, 'storeDirectInput']);
+
+        // Unit Registry
+        Route::get('/units', [\App\Http\Controllers\Api\MikmsController::class, 'getUnits']);
+        Route::get('/units-for-sewa', [\App\Http\Controllers\Api\MikmsController::class, 'getUnitsAvailableForSewa']);
+        Route::get('/units/{serial}', [\App\Http\Controllers\Api\MikmsController::class, 'getUnit']);
+
+        // Dispatch — Pengeluaran Unit
+        Route::post('/dispatch', [\App\Http\Controllers\Api\MikmsController::class, 'storeDispatch']);
+        Route::post('/dispatch/return', [\App\Http\Controllers\Api\MikmsController::class, 'returnDispatch']);
+
+        // Bundling — Robotic Explorer (1 MLK + 1 JIMU)
+        Route::get('/bundle/available-units', [\App\Http\Controllers\Api\MikmsController::class, 'getAvailableBundleUnits']);
+        Route::post('/bundle-unit', [\App\Http\Controllers\Api\MikmsController::class, 'storeBundleUnit']);
     });
 
     // File Downloads / Exports

@@ -642,6 +642,83 @@ Master program kit pembelajaran/pelatihan (BOM Packages) yang mendefinisikan mod
 
 ---
 
+### 3.19 `mikms_finish_goods`
+Katalog master 5 produk Finish Good (MLK, ROBO, JIMU, ERBO, ALK).
+
+| Nama Kolom | Tipe Data | Nullable | Keterangan |
+|---|---|---|---|
+| `id` | bigint unsigned | No | Primary Key |
+| `code` | varchar(20) | No | Kode produk unik (`MLK`, `ROBO`, `JIMU`, `ERBO`, `ALK`) |
+| `name` | varchar(150) | No | Nama lengkap produk |
+| `type` | varchar(30) | No | Tipe alur: `assembled`, `direct`, atau `bundle` |
+| `can_rent` | boolean | No | Default `true` (opsi sewa terbuka) |
+| `active` | boolean | No | Status aktif katalog |
+| `description` | text | Yes | Deskripsi produk |
+| `created_at` / `updated_at` | timestamp | Yes | Timestamps |
+
+---
+
+### 3.20 `mikms_units`
+Registry seluruh unit fisik yang ada di gudang dengan penomoran serial unik global.
+
+| Nama Kolom | Tipe Data | Nullable | Keterangan |
+|---|---|---|---|
+| `id` | bigint unsigned | No | Primary Key |
+| `serial_number` | varchar(30) | No | Nomor seri unik (`MLK-00001`, `ROBO-00001`, dst.) |
+| `product_id` | bigint unsigned | No | FK ke `mikms_finish_goods` |
+| `parent_unit_id` | bigint unsigned | Yes | FK ke `mikms_units` (id boks luar jika terikat bundle) |
+| `status` | varchar(30) | No | `qc_pending`, `in_stock`, `bundled`, `dispatched`, `returned`, `repair`, `disposed` |
+| `source_type` | varchar(30) | No | `production`, `direct_input`, atau `bundle` |
+| `source_id` | bigint unsigned | Yes | ID referensi sumber |
+| `notes` | text | Yes | Catatan unit |
+| `created_at` / `updated_at` | timestamp | Yes | Timestamps |
+
+---
+
+### 3.21 `mikms_direct_inputs`
+Catatan batch penerimaan produk jadi dari vendor tanpa perakitan (Jimu, Erbo, Arduino).
+
+| Nama Kolom | Tipe Data | Nullable | Keterangan |
+|---|---|---|---|
+| `id` | bigint unsigned | No | Primary Key |
+| `input_date` | date | No | Tanggal penerimaan |
+| `product_id` | bigint unsigned | No | FK ke `mikms_finish_goods` |
+| `quantity` | int | No | Jumlah unit masuk (1-500) |
+| `supplier` | varchar(150) | Yes | Nama vendor / supplier |
+| `received_by` | varchar(100) | No | Petugas gudang penerima |
+| `notes` | text | Yes | Catatan kondisi penerimaan |
+
+---
+
+### 3.22 `mikms_qc_checklist_templates`
+Daftar poin checklist QC baku per jenis produk finish good.
+
+| Nama Kolom | Tipe Data | Nullable | Keterangan |
+|---|---|---|---|
+| `id` | bigint unsigned | No | Primary Key |
+| `product_id` | bigint unsigned | No | FK ke `mikms_finish_goods` |
+| `check_item` | varchar(255) | No | Butir pengujian (misal: "Power ON & LED matrix menyala") |
+| `sort_order` | int | No | Urutan tampil |
+| `active` | boolean | No | Default `true` |
+
+---
+
+### 3.23 `mikms_dispatches`
+Catatan pengeluaran unit dari gudang (sewa atau beli).
+
+| Nama Kolom | Tipe Data | Nullable | Keterangan |
+|---|---|---|---|
+| `id` | bigint unsigned | No | Primary Key |
+| `dispatch_date` | date | No | Tanggal pengeluaran |
+| `unit_id` | bigint unsigned | No | FK ke `mikms_units` |
+| `type` | enum('sewa','beli') | No | Tipe pemanfaatan |
+| `destination` | varchar(255) | Yes | Tujuan pengiriman (opsional) |
+| `dispatched_by` | varchar(100) | No | Nama petugas pengeluaran |
+| `returned_at` | timestamp | Yes | Tanggal pengembalian unit (khusus sewa) |
+| `notes` | text | Yes | Catatan |
+
+---
+
 ## 4. Logika Data Dinamis & Aturan Bisnis
 
 1. **Kalkulasi Total Stok Reguler**:
