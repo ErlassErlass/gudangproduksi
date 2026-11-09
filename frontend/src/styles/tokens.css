@@ -1,0 +1,61 @@
+/* ERLASS PWMS design tokens — source: agent_docs/14_DESIGN_BRIEF.txt §3.2, §10 */
+:root {
+  /* Brand */
+  --color-primary: #3859ac;
+  --color-primary-dark: #263f7d;
+  --color-primary-light: #eef3ff;
+  --color-accent: #e8833a;
+
+  /* Background */
+  --color-page: #f1f5ff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f9fe;
+
+  /* Text */
+  --color-text-primary: #34466f;
+  --color-text-secondary: #8191b1;
+
+  /* Border */
+  --color-border: #e1e8f5;
+
+  /* Status */
+  --color-success: #2f9d62;
+  --color-success-light: #e3f6ea;
+  --color-warning: #d99025;
+  --color-warning-light: #fff3dc;
+  --color-danger: #d96a36;
+  --color-danger-light: #fff0e7;
+  --color-info: #4777c7;
+  --color-info-light: #e8effb;
+  --color-neutral: #8191b1;
+  --color-neutral-light: #eef1f7;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-9: 36px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(38, 63, 125, 0.06);
+  --shadow-md: 0 6px 20px rgba(38, 63, 125, 0.08);
+  --shadow-lg: 0 18px 48px rgba(38, 63, 125, 0.18);
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --header-height: 76px;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --focus-ring: 0 0 0 3px rgba(56, 89, 172, 0.28);
+}

@@ -1,0 +1,54 @@
+{
+  "project": "Erlass Production & Warehouse Management System (PWMS)",
+  "version": "1.0",
+  "documents": [
+    "README.md",
+    "00_PROJECT_BRIEF.md",
+    "01_PRD.md",
+    "02_SCOPE_AND_ASSUMPTIONS.md",
+    "03_BUSINESS_PROCESS.md",
+    "04_SYSTEM_ARCHITECTURE.md",
+    "05_DATABASE_SCHEMA.md",
+    "06_BUSINESS_RULES.md",
+    "07_MODULE_SPECIFICATIONS.md",
+    "08_API_SPECIFICATION.md",
+    "09_RBAC_MATRIX.md",
+    "10_UI_UX_GUIDELINES.md",
+    "11_TESTING_STRATEGY.md",
+    "12_IMPLEMENTATION_ROADMAP.md",
+    "AGENT_INSTRUCTIONS.md",
+    "13_DATA_IMPORT_GUIDE.md"
+  ],
+  "stack": {
+    "backend": "Laravel 12",
+    "frontend": "React.js",
+    "database": "MySQL/InnoDB",
+    "api": "REST /api/v1",
+    "auth": "Laravel Sanctum"
+  },
+  "confirmed_decisions": {
+    "architecture": "Modular Monolith",
+    "inventory_tracking": [
+      "QUANTITY",
+      "SERIALIZED",
+      "BATCH"
+    ],
+    "bom": [
+      "STANDARD_MLK",
+      "FLEXIBLE"
+    ],
+    "gap_vendor_portal": false,
+    "costing_scope": [
+      "material/component",
+      "purchase cost"
+    ],
+    "excluded_costing": [
+      "labor",
+      "machine",
+      "electricity",
+      "overhead",
+      "depreciation",
+      "GAP service fee"
+    ]
+  }
+}

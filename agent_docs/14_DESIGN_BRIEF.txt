@@ -1,0 +1,921 @@
+# DESIGN BRIEF
+# ERLASS PWMS — Production & Warehouse Management System
+
+**Organization:** ERLASS Prokreatif Indonesia  
+**Product:** ERLASS PWMS  
+**Document:** UI/UX Design Brief & Visual Design Specification  
+**Version:** 2.0  
+**Design Direction:** Modern Corporate Enterprise Dashboard  
+**Reference:** ERLASS Dashboard & Data Barang UI
+
+---
+
+## 1. Project Overview
+
+ERLASS PWMS merupakan sistem informasi berbasis web untuk mengintegrasikan pengelolaan persediaan barang, perencanaan produksi, proses produksi, pengadaan komponen, pengelolaan vendor, serah terima, dan pelaporan operasional ERLASS Prokreatif Indonesia.
+
+Sistem dirancang untuk menggantikan proses pengelolaan operasional yang tersebar menjadi satu platform terintegrasi.
+
+Antarmuka harus mampu menyajikan informasi operasional secara terstruktur, meminimalkan kesalahan input, mempermudah pelacakan transaksi, dan memberikan visibilitas terhadap kondisi inventaris maupun proses produksi.
+
+Desain menggunakan pendekatan **Modern Corporate Enterprise Dashboard**, dengan karakter visual profesional, minimalis, konsisten, dan berorientasi pada pengelolaan data.
+
+### 1.1 Design Objectives
+
+1. **Operational Visibility** — memberikan gambaran kondisi inventaris dan produksi secara cepat.
+2. **Data Clarity** — menyajikan data dalam hierarki informasi yang mudah dipahami.
+3. **Workflow Efficiency** — meminimalkan langkah yang diperlukan untuk menyelesaikan pekerjaan operasional.
+4. **Transaction Traceability** — mempermudah pelacakan riwayat perubahan data dan transaksi.
+5. **Role-Based Experience** — menyajikan menu dan tindakan berdasarkan hak akses pengguna.
+6. **Design Consistency** — menjaga konsistensi tampilan seluruh modul.
+7. **Scalability** — memungkinkan penambahan modul tanpa mengubah fondasi desain.
+
+---
+
+## 2. Design Reference Analysis
+
+Dua screenshot menjadi referensi utama:
+
+### 2.1 Dashboard Reference
+
+Karakteristik yang harus dipertahankan:
+
+- Sidebar putih dengan identitas ERLASS.
+- Header horizontal dengan breadcrumb dan informasi pengguna.
+- Background utama berwarna biru sangat muda.
+- Welcome banner dengan ilustrasi geometris.
+- Summary cards dengan angka yang menonjol.
+- Area aktivitas terbaru berbentuk tabel.
+- Footer minimalis.
+
+Dashboard harus berfungsi sebagai pusat informasi operasional, bukan hanya halaman sambutan.
+
+### 2.2 Data Barang Reference
+
+Karakteristik yang harus dipertahankan:
+
+- Page header dengan judul dan deskripsi.
+- Toolbar untuk tindakan utama.
+- Summary cards untuk informasi inventaris.
+- Search bar dan tombol refresh.
+- Data table dengan header berwarna soft blue.
+- Status badge berbentuk pill.
+- Informasi stok, lokasi, dan harga dalam format yang konsisten.
+
+### 2.3 Design Interpretation
+
+Kedua referensi memiliki pola desain yang sama, tetapi memiliki tujuan berbeda.
+
+| Aspek | Dashboard | Data Barang |
+|---|---|---|
+| Tujuan | Monitoring | Data management |
+| Fokus | Ringkasan operasional | Detail inventaris |
+| Komponen utama | Banner, cards, activity | Toolbar, cards, table |
+| Interaksi | Melihat kondisi sistem | CRUD dan transaksi |
+| Kepadatan informasi | Rendah–menengah | Menengah–tinggi |
+
+Prinsip penting: seluruh halaman menggunakan satu design system, tetapi tidak harus memiliki susunan konten yang identik.
+
+---
+
+## 3. Visual Identity & Design Language
+
+### 3.1 Design Style
+
+| Elemen | Spesifikasi |
+|---|---|
+| Design style | Modern Corporate Dashboard |
+| UI approach | Minimalist Enterprise |
+| Visual mood | Professional, clean, structured |
+| Layout | Fixed sidebar + flexible main content |
+| Background | Soft blue |
+| Surface | White |
+| Typography | Modern sans-serif |
+| Iconography | Minimal line icons |
+| Data visualization | Cards, tables, charts |
+| Interaction | Simple and predictable |
+
+### 3.2 Color System
+
+Palet berikut menjadi acuan awal design token.
+
+| Token | Hex | Penggunaan |
+|---|---|---|
+| Primary | `#3859AC` | Tombol utama dan aksen |
+| Primary Dark | `#263F7D` | Heading dan teks penting |
+| Primary Light | `#EEF3FF` | Active navigation |
+| Page Background | `#F1F5FF` | Background aplikasi |
+| Surface | `#FFFFFF` | Card, sidebar, modal |
+| Surface Muted | `#F7F9FE` | Area sekunder |
+| Border | `#E1E8F5` | Garis pemisah |
+| Text Primary | `#34466F` | Teks utama |
+| Text Secondary | `#8191B1` | Deskripsi dan metadata |
+| Success | `#2F9D62` | Status berhasil/aman |
+| Success Light | `#E3F6EA` | Background status |
+| Warning | `#D99025` | Status peringatan |
+| Warning Light | `#FFF3DC` | Background peringatan |
+| Danger | `#D96A36` | Status kritis |
+| Danger Light | `#FFF0E7` | Background kritis |
+| Info | `#4777C7` | Informasi proses |
+
+Ketentuan:
+- Primary blue menjadi warna identitas utama.
+- Gunakan warna netral untuk area kerja.
+- Jangan menggunakan terlalu banyak warna aksen dalam satu halaman.
+- Warna status harus memiliki arti yang konsisten.
+- Warna bukan satu-satunya cara menyampaikan status.
+
+### 3.3 Typography
+
+Font utama: **Inter**.
+
+Alternatif: Plus Jakarta Sans.
+
+| Elemen | Ukuran | Weight |
+|---|---:|---|
+| Page Title | 30–40 px | 700–800 |
+| Section Heading | 22–26 px | 700 |
+| Card Heading | 14–16 px | 500–600 |
+| Body | 14–15 px | 400 |
+| Table Content | 12–14 px | 500 |
+| Table Header | 10–12 px | 600–700 |
+| Metadata | 10–12 px | 400–500 |
+
+Gunakan letter spacing pada eyebrow text, label kategori, dan table header. Jangan menerapkan uppercase secara berlebihan.
+
+---
+
+## 4. Global Application Layout
+
+### 4.1 Desktop Layout
+
+Struktur utama:
+
+```text
++----------------------+------------------------------------------+
+|                      | Header / Breadcrumb / User Profile       |
+|                      +------------------------------------------+
+|                      |                                          |
+|     SIDEBAR          |             MAIN CONTENT                 |
+|                      |                                          |
+|     Logo             |     Page Header                          |
+|     Brand Identity   |                                          |
+|                      |     Summary / Banner                     |
+|     Navigation       |                                          |
+|     Menu Items       |     Cards / Tables / Forms / Charts      |
+|                      |                                          |
+|                      |                                          |
+|     Help Card        |     Footer                               |
+|     App Version      |                                          |
++----------------------+------------------------------------------+
+```
+
+### 4.2 Layout Dimensions
+
+| Elemen | Rekomendasi |
+|---|---|
+| Sidebar width | 250–260 px |
+| Header height | 76–80 px |
+| Main content padding | 32–40 px |
+| Card radius | 14–18 px |
+| Input radius | 9–12 px |
+| Button radius | 8–10 px |
+| Section spacing | 28–36 px |
+| Card gap | 16–20 px |
+
+Dimensi harus fleksibel terhadap resolusi layar.
+
+### 4.3 Sidebar Navigation
+
+Sidebar terdiri dari:
+
+**Brand Identity**
+- Logo resmi ERLASS.
+- Nama ERLASS.
+- Label PRODUCTION.
+- Label INVENTORY SYSTEM.
+
+**Menu Navigation**
+
+Kelompok menu utama mengikuti struktur modul sistem:
+
+1. Dashboard
+2. Master Data
+   - Data Barang
+   - Data Kategori
+   - Data Lokasi
+   - Data Vendor
+   - Data Produk
+   - Data BOM
+3. Rencana Produksi
+4. Produksi WIP
+5. Pengajuan Barang
+6. Pengadaan / GAP
+7. Serah Terima
+8. Inventaris
+9. Laporan
+
+Nama dan pengelompokan akhir mengikuti implementasi modul dan hak akses. Menu yang belum tersedia atau tidak relevan untuk suatu role tidak perlu ditampilkan.
+
+**Sidebar Footer**
+- Help card.
+- Informasi administrator.
+- Versi aplikasi.
+
+**Active State**
+- Background `#EEF3FF`.
+- Teks dan icon primary blue.
+- Indicator kecil berwarna oranye.
+- Rounded corners.
+
+### 4.4 Header Navigation
+
+Header berisi:
+- Breadcrumb.
+- Informasi tanggal.
+- Avatar pengguna.
+- Nama atau email.
+- Role pengguna.
+- Tombol Logout.
+
+Header menggunakan border-bottom tipis.
+
+Pada layar lebih kecil, informasi sekunder dapat diringkas.
+
+### 4.5 Page Header
+
+Setiap halaman menggunakan pola:
+
+```text
+EYEBROW / MODULE CATEGORY
+
+Page Title                         Optional Action / Status
+
+Short description of the page
+```
+
+Page title harus jelas dan menggambarkan fungsi halaman.
+
+---
+
+## 5. Component Design System
+
+### 5.1 Summary Cards
+
+Struktur:
+- Label.
+- Icon.
+- Angka utama.
+- Keterangan tambahan.
+
+Karakteristik:
+- White surface.
+- Border tipis.
+- Shadow ringan.
+- Rounded corners.
+- Angka berukuran besar.
+- Icon menggunakan soft blue atau soft orange.
+
+Contoh metrik:
+- Total Jenis Barang.
+- Total Unit Stok.
+- Rencana Produksi.
+- Pengajuan Menunggu.
+- Barang Stok Rendah.
+- Produksi Berjalan.
+
+Summary cards hanya menampilkan informasi yang relevan dengan halaman.
+
+### 5.2 Data Tables
+
+Tabel menjadi komponen utama untuk halaman administratif.
+
+Karakteristik:
+- White container.
+- Header soft blue.
+- Border tipis.
+- Row separator.
+- Hover state.
+- Teks compact dan mudah dibaca.
+
+Fitur:
+- Search.
+- Filter.
+- Sorting.
+- Pagination.
+- Refresh.
+- Row action.
+- Empty state.
+- Loading state.
+- Error state.
+
+Gunakan pagination untuk data besar. Hindari memaksakan seluruh data dalam satu halaman tanpa batas.
+
+### 5.3 Status Badges
+
+| Status | Warna |
+|---|---|
+| Aman | Hijau |
+| Stok Rendah | Oranye |
+| Stok Habis | Merah |
+| Menunggu | Oranye |
+| Disetujui | Hijau |
+| Ditolak | Merah |
+| Dalam Proses | Biru |
+| Selesai | Hijau |
+| Dibatalkan | Abu-abu |
+
+Badge harus:
+- Menggunakan label teks.
+- Memiliki warna konsisten.
+- Menggunakan bentuk pill.
+- Tidak terlalu besar.
+- Dapat dibaca dengan jelas.
+
+### 5.4 Buttons
+
+**Primary**
+- Background primary blue.
+- Teks putih.
+- Digunakan untuk tindakan utama.
+
+**Secondary**
+- Background putih.
+- Border soft blue.
+- Digunakan untuk tindakan tambahan.
+
+**Danger**
+- Warna merah.
+- Digunakan untuk tindakan destruktif.
+
+**Icon Button**
+- Digunakan untuk aksi tambahan seperti edit, detail, dan refresh.
+
+Setiap button mendukung state default, hover, active, disabled, dan loading.
+
+### 5.5 Forms
+
+Form harus menggunakan:
+- Label eksplisit.
+- Placeholder sebagai petunjuk tambahan.
+- Required indicator.
+- Helper text.
+- Validation message.
+- Input grouping.
+- Consistent spacing.
+
+Untuk form yang kompleks, gunakan section grouping atau tab agar pengguna tidak menghadapi satu form panjang tanpa struktur.
+
+### 5.6 Modal & Drawer
+
+Gunakan modal untuk:
+- Konfirmasi tindakan.
+- Input sederhana.
+- Detail ringkas.
+- Perubahan status.
+
+Gunakan drawer atau halaman detail untuk proses yang lebih kompleks dan membutuhkan banyak informasi.
+
+### 5.7 Notification & Feedback
+
+- Success toast.
+- Error toast.
+- Warning alert.
+- Confirmation dialog.
+- Loading indicator.
+- Empty state.
+
+Setiap aksi penting harus memberikan feedback yang jelas.
+
+---
+
+## 6. Module-Specific UI/UX Requirements
+
+Semua modul harus mengikuti design system global, tetapi masing-masing memiliki pola konten sesuai proses bisnis.
+
+### 6.1 Dashboard
+
+**Purpose:** Monitoring kondisi operasional secara keseluruhan.
+
+Struktur:
+1. Page header.
+2. Welcome banner.
+3. Ringkasan inventaris.
+4. Summary cards.
+5. Aktivitas terbaru.
+6. Ringkasan produksi.
+7. Footer.
+
+Welcome banner:
+- Background soft blue dengan aksen hangat.
+- Heading utama.
+- Deskripsi singkat.
+- Ilustrasi geometris atau identitas ERLASS.
+- Tidak mendominasi ruang kerja.
+
+Metrik:
+- Total Jenis Barang.
+- Total Stok.
+- Rencana Produksi.
+- Pengajuan Menunggu.
+
+Aktivitas terbaru:
+- Aktivitas.
+- Modul.
+- Pengguna.
+- Waktu.
+- Status.
+
+Dashboard harus menampilkan data aktual sesuai permission pengguna.
+
+### 6.2 Master Data — Data Barang
+
+**Purpose:** Mengelola master data barang dan komponen inventaris.
+
+Struktur:
+1. Page header.
+2. Action toolbar.
+3. Summary cards.
+4. Search dan filter.
+5. Data table.
+
+Action toolbar:
+- Barang Masuk.
+- Barang Keluar.
+- Riwayat.
+- Tambah Barang.
+
+Kolom tabel:
+- Kode Barang.
+- Nama Barang.
+- Kategori.
+- Stok Tersedia.
+- Minimum Stok.
+- Lokasi.
+- Status.
+- Harga Beli.
+- Action.
+
+Detail barang:
+- Informasi umum.
+- Kode barang.
+- Kategori.
+- Satuan.
+- Lokasi penyimpanan.
+- Minimum stok.
+- Harga pembelian.
+- Riwayat pergerakan stok.
+
+### 6.3 Master Data — Produk, Layanan, dan Program
+
+Sistem harus membedakan klasifikasi:
+
+- **Produk:** merepresentasikan finished goods.
+- **Layanan:** merepresentasikan jasa atau service.
+- **Program:** merepresentasikan kombinasi jasa dan barang fisik, termasuk atribut sekolah dan rombel apabila relevan.
+
+UI harus menyediakan klasifikasi yang eksplisit, bukan mencampurkan jenis produk dengan atribut lain seperti sekolah, rombel, atau kategori komponen.
+
+Detail form harus menyesuaikan klasifikasi yang dipilih.
+
+### 6.4 Master Data — BOM
+
+**Purpose:** Mengelola Bill of Materials untuk kebutuhan produksi.
+
+Desain mendukung pendekatan hybrid:
+
+- Produk MLK menggunakan template BOM standar.
+- Produk lain dapat menggunakan BOM fleksibel.
+
+UI BOM harus menyediakan:
+- Informasi produk.
+- Versi BOM.
+- Daftar komponen.
+- Kuantitas kebutuhan.
+- Satuan.
+- Keterangan komponen.
+- Status BOM.
+- Riwayat perubahan.
+
+BOM perlu memiliki struktur hierarkis yang mudah dibaca, terutama ketika satu produk memiliki banyak komponen.
+
+Gunakan tabel atau komponen nested untuk menampilkan daftar komponen. Hindari form satu baris panjang untuk setiap komponen.
+
+### 6.5 Rencana Produksi
+
+**Purpose:** Merencanakan kebutuhan produksi berdasarkan produk dan target kuantitas.
+
+UI harus menyediakan:
+- Nomor rencana produksi.
+- Produk/program terkait.
+- Target kuantitas.
+- Jadwal produksi.
+- Kebutuhan komponen berdasarkan BOM.
+- Ketersediaan stok.
+- Estimasi kebutuhan pembelian.
+- Status rencana.
+
+Gunakan ringkasan kebutuhan komponen untuk membantu pengguna mengetahui apakah produksi dapat dimulai.
+
+Status dapat meliputi:
+- Draft.
+- Menunggu Persetujuan.
+- Disetujui.
+- Siap Produksi.
+- Dalam Produksi.
+- Selesai.
+- Dibatalkan.
+
+Status final mengikuti workflow yang diimplementasikan.
+
+### 6.6 Produksi WIP
+
+**Purpose:** Memantau pelaksanaan produksi dan barang dalam proses.
+
+UI harus menampilkan:
+- Nomor produksi.
+- Referensi rencana produksi.
+- Produk.
+- Target produksi.
+- Output aktual.
+- Komponen yang digunakan.
+- Progress produksi.
+- Status.
+- Riwayat proses.
+
+Gunakan progress indicator dan ringkasan kuantitas.
+
+Jangan menampilkan progress hanya dalam bentuk persentase tanpa konteks kuantitas target dan aktual.
+
+### 6.7 Pengajuan Barang
+
+**Purpose:** Mengelola permintaan barang untuk kebutuhan operasional dan produksi.
+
+UI harus menyediakan:
+- Nomor pengajuan.
+- Pemohon.
+- Departemen atau kebutuhan.
+- Daftar barang.
+- Kuantitas.
+- Tanggal pengajuan.
+- Prioritas.
+- Status persetujuan.
+
+Gunakan status badge dan timeline untuk menunjukkan perkembangan pengajuan.
+
+Detail pengajuan harus menampilkan informasi pemohon, item yang diminta, dan riwayat persetujuan.
+
+### 6.8 Pengadaan / GAP
+
+**Purpose:** Mencatat proses pengadaan dan transaksi barang yang melibatkan vendor GAP.
+
+Ketentuan operasional:
+- Staff ERLASS bertanggung jawab menginput pengiriman dan penerimaan.
+- UI harus mendukung pencatatan kedua proses tersebut.
+- Data pengiriman dan penerimaan harus dapat ditelusuri.
+
+Informasi yang perlu ditampilkan:
+- Referensi pengadaan.
+- Vendor.
+- Tanggal pengiriman.
+- Daftar barang.
+- Kuantitas dikirim.
+- Kuantitas diterima.
+- Selisih.
+- Status penerimaan.
+- Dokumen pendukung.
+
+Gunakan tampilan perbandingan kuantitas pengiriman dan penerimaan agar selisih mudah diidentifikasi.
+
+### 6.9 Serah Terima
+
+**Purpose:** Mendokumentasikan proses perpindahan atau penyerahan barang.
+
+UI harus menyediakan:
+- Nomor serah terima.
+- Pihak penyerah.
+- Pihak penerima.
+- Tanggal.
+- Daftar barang.
+- Kuantitas.
+- Kondisi barang.
+- Bukti atau dokumen.
+- Status.
+
+Detail transaksi harus memiliki informasi yang cukup untuk keperluan audit.
+
+### 6.10 Laporan
+
+**Purpose:** Menyajikan informasi operasional untuk evaluasi dan pengambilan keputusan.
+
+Jenis laporan:
+- Laporan stok.
+- Laporan barang masuk.
+- Laporan barang keluar.
+- Laporan mutasi inventaris.
+- Laporan produksi.
+- Laporan kebutuhan komponen.
+- Laporan pengadaan.
+- Laporan serah terima.
+- Laporan biaya produksi.
+
+Komponen UI:
+- Filter tanggal.
+- Filter kategori.
+- Filter produk.
+- Filter status.
+- Summary metrics.
+- Data table.
+- Grafik apabila relevan.
+- Export PDF/Excel sesuai kebutuhan.
+
+### 6.11 Costing
+
+Perhitungan biaya produksi mengikuti keputusan bisnis:
+
+- Biaya komponen.
+- Biaya pembelian.
+
+UI costing harus memisahkan:
+- Komponen yang digunakan.
+- Kuantitas aktual.
+- Harga komponen.
+- Biaya pembelian.
+- Total biaya terkait produksi.
+
+Jangan menambahkan kategori overhead atau biaya lain sebagai komponen perhitungan wajib sebelum kebijakan bisnis menetapkannya.
+
+---
+
+## 7. Interaction & Workflow Principles
+
+### 7.1 Role-Based Interface
+
+Menu, tombol, dan tindakan harus mengikuti hak akses pengguna.
+
+UI tidak boleh hanya menyembunyikan tombol. Backend tetap menjadi sumber otoritatif untuk validasi permission.
+
+### 7.2 Transaction Safety
+
+Untuk transaksi yang memengaruhi stok:
+- Tampilkan ringkasan sebelum konfirmasi.
+- Tampilkan referensi transaksi.
+- Validasi kuantitas.
+- Tampilkan feedback setelah berhasil.
+- Sediakan akses ke riwayat transaksi.
+- Hindari pengubahan stok langsung tanpa transaksi yang dapat ditelusuri.
+
+### 7.3 Auditability
+
+Perubahan penting harus dapat dilacak melalui:
+- Pengguna yang melakukan aksi.
+- Waktu transaksi.
+- Data sebelum dan sesudah perubahan apabila relevan.
+- Referensi transaksi.
+- Status proses.
+
+### 7.4 Empty, Loading, and Error States
+
+Semua halaman harus memiliki kondisi:
+- Initial loading.
+- Loading data.
+- Empty data.
+- Search result not found.
+- Validation error.
+- Server error.
+- Success state.
+
+Jangan menggunakan data dummy seolah-olah merupakan data produksi.
+
+---
+
+## 8. Responsive Design
+
+### Desktop
+- Sidebar penuh.
+- Multi-column cards.
+- Tabel dengan seluruh kolom penting.
+- Toolbar horizontal.
+
+### Tablet
+- Sidebar collapsible.
+- Cards dua kolom.
+- Toolbar dapat wrapping.
+- Tabel dapat horizontal scroll.
+
+### Mobile
+- Sidebar menjadi drawer.
+- Cards satu kolom atau dua kolom sesuai lebar.
+- Form satu kolom.
+- Tabel menggunakan horizontal scroll atau card view.
+- Action button mudah dijangkau.
+- Informasi penting tidak boleh terpotong.
+
+Responsive design harus mempertimbangkan penggunaan sistem di area gudang dan produksi, bukan hanya tampilan desktop.
+
+---
+
+## 9. Accessibility & Usability
+
+Standar minimum:
+- Kontras teks memadai.
+- Label pada seluruh input.
+- Accessible name pada icon button.
+- Focus state terlihat.
+- Navigasi keyboard.
+- Status tidak hanya menggunakan warna.
+- Ukuran target interaksi memadai.
+- Pesan error menjelaskan cara memperbaiki input.
+
+---
+
+## 10. Design Tokens
+
+Gunakan token terpusat agar seluruh halaman memiliki tampilan konsisten.
+
+```css
+:root {
+  /* Brand */
+  --color-primary: #3859AC;
+  --color-primary-dark: #263F7D;
+  --color-primary-light: #EEF3FF;
+
+  /* Background */
+  --color-page: #F1F5FF;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F7F9FE;
+
+  /* Text */
+  --color-text-primary: #34466F;
+  --color-text-secondary: #8191B1;
+
+  /* Border */
+  --color-border: #E1E8F5;
+
+  /* Status */
+  --color-success: #2F9D62;
+  --color-warning: #D99025;
+  --color-danger: #D96A36;
+  --color-info: #4777C7;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --header-height: 80px;
+}
+```
+
+### Reusable Components
+
+Implementasikan komponen reusable:
+- AppLayout.
+- Sidebar.
+- Header.
+- Breadcrumb.
+- PageHeader.
+- StatCard.
+- DataTable.
+- SearchBar.
+- FilterBar.
+- StatusBadge.
+- FormField.
+- Modal.
+- Drawer.
+- ConfirmationDialog.
+- Toast.
+- EmptyState.
+- LoadingState.
+- Timeline.
+- ProgressIndicator.
+- FileUpload.
+
+Setiap komponen harus mendukung variasi dan state yang diperlukan tanpa menduplikasi styling di masing-masing halaman.
+
+---
+
+## 11. Implementation Guidelines
+
+### 11.1 Technology Alignment
+
+Desain ditujukan untuk implementasi menggunakan:
+- Frontend: React.js.
+- Build tooling: Vite.
+- Backend: Laravel 12.
+- Database: MySQL.
+- UI styling: CSS terstruktur atau utility-first CSS sesuai arsitektur frontend.
+
+### 11.2 Frontend Architecture
+
+Pisahkan:
+1. Global layout.
+2. Shared components.
+3. Page-level components.
+4. Feature modules.
+5. API integration.
+6. State management.
+7. Form validation.
+
+Setiap modul harus menggunakan komponen bersama untuk menjaga konsistensi.
+
+### 11.3 Data Integrity
+
+- Semua angka statistik berasal dari data backend.
+- Data stok tidak boleh dihitung dari data dummy.
+- Status transaksi mengikuti business rules.
+- Harga menggunakan format Rupiah.
+- Tanggal menggunakan format Indonesia.
+- Informasi yang tidak tersedia harus ditampilkan sebagai nilai kosong yang konsisten, bukan angka asumsi.
+
+### 11.4 Brand Assets
+
+- Gunakan logo resmi ERLASS.
+- Jangan menggambar ulang logo.
+- Jangan mengubah proporsi, warna, atau komposisi logo.
+- Gunakan aset asli yang disediakan.
+- Ilustrasi dekoratif harus mendukung identitas visual, bukan menggantikan logo.
+
+---
+
+## 12. Design Quality Assurance
+
+| Area | Acceptance Criteria |
+|---|---|
+| Global layout | Seluruh halaman memakai struktur layout yang sama |
+| Sidebar | Active menu sesuai halaman dan role |
+| Header | Breadcrumb dan informasi akun konsisten |
+| Typography | Hierarki heading dan body konsisten |
+| Color system | Menggunakan design token |
+| Cards | Komponen reusable dan konsisten |
+| Tables | Mendukung search, filter, sorting, dan pagination sesuai kebutuhan |
+| Forms | Memiliki validasi dan feedback |
+| Transactions | Menampilkan referensi dan status |
+| Permissions | Tindakan sesuai hak akses |
+| Responsive | Desktop, tablet, dan mobile |
+| Accessibility | Label, focus, dan kontras memadai |
+| Brand | Logo dan identitas ERLASS tidak dimodifikasi |
+| Data accuracy | Seluruh informasi operasional berasal dari backend |
+
+---
+
+## 13. Final Design Principles
+
+Seluruh implementasi desain ERLASS PWMS harus mengikuti prinsip berikut:
+
+**1. Consistency over Decoration**
+
+Konsistensi antarmodul lebih penting daripada variasi visual yang tidak memiliki fungsi.
+
+**2. Data First**
+
+Informasi operasional harus menjadi fokus utama. Elemen dekoratif tidak boleh mengganggu keterbacaan.
+
+**3. Clear Operational Status**
+
+Pengguna harus dapat mengetahui kondisi stok, produksi, pengadaan, dan persetujuan dengan cepat.
+
+**4. Traceable Transactions**
+
+Setiap transaksi yang berdampak pada inventaris harus memiliki identitas dan riwayat yang jelas.
+
+**5. Scalable Components**
+
+Komponen desain harus dapat digunakan kembali dan dikembangkan bersama pertumbuhan sistem.
+
+**6. Business Process Alignment**
+
+UI harus mengikuti workflow bisnis ERLASS, bukan memaksakan proses bisnis mengikuti keterbatasan komponen UI.
+
+---
+
+## 14. Final Design Direction
+
+ERLASS PWMS harus mempertahankan karakter visual dari dua referensi utama:
+
+- Sidebar putih dengan branding ERLASS.
+- Background halaman soft blue.
+- Heading navy yang tegas.
+- White cards dengan rounded corners.
+- Aksen primary blue.
+- Aksen orange untuk perhatian.
+- Data table yang rapi dan compact.
+- Status badge yang konsisten.
+- Komponen administratif yang minimalis.
+- Layout yang profesional dan responsif.
+
+Namun, implementasi final harus berkembang menjadi sistem enterprise yang mendukung seluruh aktivitas inventaris dan produksi.
+
+**Final design statement:**
+
+"ERLASS PWMS is a modern corporate enterprise application designed to simplify inventory management, production planning, warehouse operations, procurement coordination, and operational reporting through a consistent, data-driven, and scalable user interface."
