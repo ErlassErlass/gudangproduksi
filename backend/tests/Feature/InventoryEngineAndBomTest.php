@@ -406,19 +406,23 @@ final class InventoryEngineAndBomTest extends TestCase
         ])->assertCreated();
         $planId = $planRes->json('data.id');
 
-        // Add stage 1 (40%)
+        // Add stage 1 (40%) with output produced_qty 8 (target 10 -> KURANG)
         $s1 = $this->actingAs($admin, 'sanctum')->postJson("/api/v1/production-plans/{$planId}/stages", [
             'name' => 'Pemotongan & Solder Bahan',
             'weight_percentage' => '40.00',
+            'produced_qty' => '8.0000',
         ])->assertCreated();
         $s1Id = $s1->json('data.id');
+        $this->assertEquals('KURANG', $s1->json('data.output_category'));
 
-        // Add stage 2 (60%)
+        // Add stage 2 (60%) with output produced_qty 12 (target 10 -> LEBIH)
         $s2 = $this->actingAs($admin, 'sanctum')->postJson("/api/v1/production-plans/{$planId}/stages", [
             'name' => 'Integrasi Box & Final Testing',
             'weight_percentage' => '60.00',
+            'produced_qty' => '12.0000',
         ])->assertCreated();
         $s2Id = $s2->json('data.id');
+        $this->assertEquals('LEBIH', $s2->json('data.output_category'));
 
         // Adding another stage exceeding 100% must be rejected
         $this->actingAs($admin, 'sanctum')->postJson("/api/v1/production-plans/{$planId}/stages", [
@@ -426,10 +430,12 @@ final class InventoryEngineAndBomTest extends TestCase
             'weight_percentage' => '15.00',
         ])->assertStatus(422);
 
-        // Update stage 1 to COMPLETED
-        $this->actingAs($admin, 'sanctum')->putJson("/api/v1/production-plan-stages/{$s1Id}", [
+        // Update stage 1 to COMPLETED with produced_qty 10 (SESUAI)
+        $u1 = $this->actingAs($admin, 'sanctum')->putJson("/api/v1/production-plan-stages/{$s1Id}", [
             'status' => 'COMPLETED',
+            'produced_qty' => '10.0000',
         ])->assertOk();
+        $this->assertEquals('SESUAI', $u1->json('data.output_category'));
 
         // Delete stage 1 (COMPLETED) must be rejected!
         $this->actingAs($admin, 'sanctum')->deleteJson("/api/v1/production-plan-stages/{$s1Id}")
@@ -707,6 +713,23 @@ final class InventoryEngineAndBomTest extends TestCase
         ])->assertOk();
 
         $this->assertEquals('SELESAI DITERIMA', $statusUpdated->json('data.status'));
+
+        // 4. Test Purchase Order ONLY allows physical components/finished goods; non-physical/service must be rejected!
+        $service = Product::query()->where('product_type', 'SERVICE')->first();
+        if ($service) {
+            $this->actingAs($admin, 'sanctum')->postJson('/api/v1/purchase-orders', [
+                'supplier_name' => 'Supplier Jasa',
+                'order_date' => '2026-11-10',
+                'items' => [
+                    [
+                        'product_id' => $service->id,
+                        'ordered_qty' => '1.0000',
+                        'unit_price' => '50000.00',
+                        'uom_id' => $service->base_uom_id,
+                    ],
+                ],
+            ])->assertStatus(422);
+        }
     }
 
     public function test_generate_rental_delivery_order_and_distribution_sync(): void
@@ -913,5 +936,127 @@ final class InventoryEngineAndBomTest extends TestCase
             'status' => 'RETURNED',
         ])->assertOk()->json('data');
         $this->assertEquals('RETURNED', $updateStatusDone['status']);
+    }
+
+    public function test_production_plan_requirements_stages_procurement_assembly_and_rental_flow(): void
+    {
+        $admin = User::query()->where('email', 'admin@erlass.test')->firstOrFail();
+
+        $fg = Product::query()->where('code', '1001')->firstOrFail();
+        $uom = \App\Domains\MasterData\Models\Uom::query()->where('code', 'PCS')->firstOrFail();
+
+        // 1. Buat Rencana Produksi: total target 20 unit, tanggal rencana & jatuh tempo
+        $planRes = $this->actingAs($admin, 'sanctum')->postJson('/api/v1/production-plans', [
+            'title' => 'Rencana Produksi MLK Batch Alpha',
+            'plan_date' => '2026-11-10',
+            'due_date' => '2026-11-25',
+            'priority' => 'HIGH',
+            'items' => [
+                [
+                    'product_id' => $fg->id,
+                    'target_qty' => 20,
+                    'uom_id' => $uom->id,
+                ],
+            ],
+        ])->assertCreated()->json('data');
+
+        $planId = $planRes['id'];
+
+        // 2. Query production plans: pastikan rincian kebutuhan komponen dan total estimasi biaya terhitung
+        $listRes = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/production-plans')->assertOk()->json('data');
+        $plan = collect($listRes)->firstWhere('id', $planId);
+        $this->assertNotNull($plan);
+        $this->assertEquals(20, $plan['target_qty']);
+        $this->assertNotEmpty($plan['required_components']);
+        $this->assertGreaterThan(0, $plan['total_estimated_budget']);
+
+        // 3. Bagi menjadi tahapan pengerjaan dengan target unit & tanggal rencana
+        // Tahap 1: Target 10 unit, bobot 50%
+        $stg1Res = $this->actingAs($admin, 'sanctum')->postJson("/api/v1/production-plans/{$planId}/stages", [
+            'name' => 'Tahap 1: Perakitan Modul & Solder',
+            'weight_percentage' => 50,
+            'target_units' => 10,
+            'planned_date' => '2026-11-12',
+            'produced_qty' => 8, // Kurang dari target unit (8 < 10)
+        ])->assertCreated()->json('data');
+
+        $this->assertEquals(10, $stg1Res['target_units']);
+        $this->assertEquals('2026-11-12', $stg1Res['planned_date']);
+        $this->assertEquals(8, $stg1Res['produced_qty']);
+        $this->assertEquals('KURANG', $stg1Res['output_category']);
+
+        // Tahap 2: Target 10 unit, bobot 50%, realisasi 12 unit (LEBIH)
+        $stg2Res = $this->actingAs($admin, 'sanctum')->postJson("/api/v1/production-plans/{$planId}/stages", [
+            'name' => 'Tahap 2: Perakitan Box & Finalisasi FG',
+            'weight_percentage' => 50,
+            'target_units' => 10,
+            'planned_date' => '2026-11-18',
+            'produced_qty' => 12, // Lebih dari target unit (12 > 10)
+        ])->assertCreated()->json('data');
+
+        $this->assertEquals(12, $stg2Res['produced_qty']);
+        $this->assertEquals('LEBIH', $stg2Res['output_category']);
+
+        // Update tahap 2 menjadi SESUAI (10 unit)
+        $updateStg2 = $this->actingAs($admin, 'sanctum')->putJson("/api/v1/production-plan-stages/{$stg2Res['id']}", [
+            'produced_qty' => 10,
+            'status' => 'COMPLETED',
+        ])->assertOk()->json('data');
+
+        $this->assertEquals('SESUAI', $updateStg2['output_category']);
+
+        // 4. Pengadaan Komponen Fisik (PO) & GRN ke Gudang
+        $comp = Product::query()->where('code', 'SP.PART.ER.016')->firstOrFail();
+        $poRes = $this->actingAs($admin, 'sanctum')->postJson('/api/v1/purchase-orders', [
+            'supplier_name' => 'PT Suplai Komponen Indonesia',
+            'supplier_phone' => '081234567890',
+            'status' => 'DIPESAN',
+            'order_date' => '2026-11-10',
+            'items' => [
+                [
+                    'product_id' => $comp->id,
+                    'ordered_qty' => 40,
+                    'unit_price' => 18500,
+                    'uom_id' => $comp->base_uom_id,
+                ],
+            ],
+        ])->assertCreated()->json('data');
+
+        $loc = \App\Domains\Warehouse\Models\Location::query()->where('code', 'POP.L3R3C1.M01')->firstOrFail();
+        $poItem = \Illuminate\Support\Facades\DB::table('purchase_order_items')->where('purchase_order_id', $poRes['id'])->first();
+
+        // GRN Penerimaan Barang ke rak gudang
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/purchase-orders/{$poRes['id']}/goods-receipts", [
+            'receiving_location_id' => $loc->id,
+            'items' => [
+                [
+                    'purchase_order_item_id' => $poItem->id,
+                    'received_qty' => 40,
+                    'accepted_qty' => 40,
+                    'rejected_qty' => 0,
+                ],
+            ],
+        ], [
+            \App\Shared\Idempotency\IdempotencyService::HEADER => 'test-grn-' . uniqid(),
+        ])->assertCreated();
+
+        // 5. Sewa mengambil dari stok Finished Good yang sudah tersimpan
+        $cust = \App\Domains\MasterData\Models\Customer::query()->create([
+            'code' => 'SCH-TEST-FLOW',
+            'name' => 'SMA Negeri 5 Unggulan',
+            'customer_type' => 'SCHOOL',
+            'school_name' => 'SMA Negeri 5 Unggulan',
+        ]);
+
+        $rentalRes = $this->actingAs($admin, 'sanctum')->postJson('/api/v1/rental-orders', [
+            'customer_id' => $cust->id,
+            'production_plan_id' => $planId,
+            'start_date' => '2026-11-20',
+            'notes' => 'Sewa batch Finished Good hasil rencana produksi',
+        ])->assertCreated()->json('data');
+
+        $this->assertEquals(20, $rentalRes['total_units']);
+        $this->assertArrayHasKey('available_fg_stock', $rentalRes);
+        $this->assertCount(20, $rentalRes['unit_codes']);
     }
 }

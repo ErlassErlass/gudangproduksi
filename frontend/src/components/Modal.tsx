@@ -40,13 +40,20 @@ export function Modal({ open, isOpen, title, description, size = 'md', onClose, 
         ref={dialogRef}
       >
         <div className="modal__header">
-          <div>
+          <div className="modal__header-content">
             <h2 id="modal-title" className="modal__title">
               {title}
             </h2>
-            {description && <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>}
+            {description && <p className="modal__desc">{description}</p>}
           </div>
-          <Button variant="ghost" iconOnly aria-label="Tutup" icon={<X size={18} />} onClick={onClose} />
+          <Button
+            variant="ghost"
+            iconOnly
+            aria-label="Tutup"
+            className="modal__close"
+            icon={<X size={18} />}
+            onClick={onClose}
+          />
         </div>
         <div className="modal__body">{children}</div>
         {footer && <div className="modal__footer">{footer}</div>}
@@ -96,6 +103,7 @@ export function ConfirmationDialog({
     <Modal
       open={isVisible}
       title={title}
+      size="sm"
       onClose={onCancel}
       footer={
         <>
@@ -108,7 +116,7 @@ export function ConfirmationDialog({
         </>
       }
     >
-      {content}
+      <div className="confirmation-dialog__content">{content}</div>
     </Modal>
   );
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domains\Inventory\Enums\StockStatus;
 use App\Domains\Inventory\Models\InventoryBalance;
 use App\Domains\Procurement\Services\ProcurementService;
+use App\Domains\Production\Services\BomService;
 use App\Domains\Production\Services\ProductionWorkflowService;
 use App\Domains\Rental\Models\SalesLoan;
 use App\Domains\Rental\Services\RentalService;
@@ -33,6 +34,7 @@ final class OperationsController extends Controller
     public function __construct(
         private readonly ProcurementService $procurement,
         private readonly ProductionWorkflowService $production,
+        private readonly BomService $bom,
         private readonly VendorProcessingService $vendor,
         private readonly RentalService $rental,
         private readonly InventoryPostingContract $inventory,
@@ -85,6 +87,35 @@ final class OperationsController extends Controller
             'items.*.uom_id' => ['required', 'integer', Rule::exists('uoms', 'id')],
         ]);
 
+        // Aturan Bisnis: Purchase Order & GRN produknya HANYA berupa komponen/finished good dengan kategori fisik
+        foreach ($data['items'] as $item) {
+            $product = DB::table('products')
+                ->leftJoin('product_categories', 'product_categories.id', '=', 'products.category_id')
+                ->where('products.id', $item['product_id'])
+                ->select('products.*', 'product_categories.code as category_code', 'product_categories.name as category_name')
+                ->first();
+
+            if (! $product) {
+                throw new DomainException('Produk tidak ditemukan.', 'PRODUCT_NOT_FOUND', 404);
+            }
+
+            $isPhysical = ($product->physical_type === 'PHYSICAL');
+            $categoryCode = strtoupper($product->category_code ?? '');
+            $categoryName = strtolower($product->category_name ?? '');
+            $isEligibleCategory = in_array($categoryCode, ['COMP', 'FG', 'WIP-MOD', 'WIP-BOX'], true)
+                || str_contains($categoryName, 'komponen')
+                || str_contains($categoryName, 'finished good')
+                || str_contains($categoryName, 'spare part');
+
+            if (! $isPhysical || ! $isEligibleCategory) {
+                throw new DomainException(
+                    "Produk [{$product->code}] bukan komponen atau finished good dengan kategori fisik. Purchase Order & Penerimaan Barang (GRN) hanya mengizinkan produk fisik.",
+                    'INVALID_PO_PRODUCT',
+                    422
+                );
+            }
+        }
+
         if (empty($data['supplier_name']) && !empty($data['supplier_id'])) {
             $data['supplier_name'] = DB::table('suppliers')->where('id', $data['supplier_id'])->value('name');
         } elseif (empty($data['supplier_name'])) {
@@ -135,6 +166,19 @@ final class OperationsController extends Controller
             'items.*.actual_unit_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
+        // Verifikasi bahwa produk yang diterima berstatus fisik
+        $poItems = DB::table('purchase_order_items')
+            ->join('products', 'products.id', '=', 'purchase_order_items.product_id')
+            ->where('purchase_order_items.purchase_order_id', $purchaseOrder)
+            ->select('products.*')
+            ->get();
+
+        foreach ($poItems as $prod) {
+            if ($prod->physical_type !== 'PHYSICAL') {
+                throw new DomainException("Barang penerimaan [{$prod->code}] bukan produk dengan kategori fisik.", 'INVALID_GRN_PRODUCT', 422);
+            }
+        }
+
         /** @var User $user */
         $user = $request->user();
         $res = $this->procurement->receiveAndPostGrn($purchaseOrder, $data, $user, $idempotencyKey);
@@ -167,9 +211,114 @@ final class OperationsController extends Controller
                     ->orderBy('id')
                     ->get();
 
+                $targetQty = (float) DB::table('production_plan_items')
+                    ->where('production_plan_id', $plan->id)
+                    ->sum('target_qty');
+                $plan->target_qty = $targetQty;
+
+                $latestProduced = 0.0;
+                foreach ($plan->stages as $stg) {
+                    $stgProduced = (float) ($stg->produced_qty ?? 0);
+                    $stg->produced_qty = $stgProduced;
+                    $stgTarget = isset($stg->target_units) && (float) $stg->target_units > 0
+                        ? (float) $stg->target_units
+                        : $targetQty;
+
+                    if ($stgProduced > 0 && $stgTarget > 0) {
+                        if ($stgProduced < $stgTarget) {
+                            $stg->output_category = 'KURANG';
+                            $stg->output_variance = $stgProduced - $stgTarget;
+                        } elseif ($stgProduced > $stgTarget) {
+                            $stg->output_category = 'LEBIH';
+                            $stg->output_variance = $stgProduced - $stgTarget;
+                        } else {
+                            $stg->output_category = 'SESUAI';
+                            $stg->output_variance = 0.0;
+                        }
+                    } else {
+                        $stg->output_category = $stg->output_category ?? null;
+                        $stg->output_variance = null;
+                    }
+
+                    if ($stg->status === 'COMPLETED' && $stgProduced > 0) {
+                        $latestProduced = $stgProduced;
+                    } elseif ($latestProduced == 0 && $stgProduced > 0) {
+                        $latestProduced = $stgProduced;
+                    }
+                }
+
+                $plan->total_produced_qty = (float) $plan->stages->sum('produced_qty');
+                $plan->produced_qty = $latestProduced > 0 ? $latestProduced : $plan->total_produced_qty;
+
+                // Kategori output terhadap target produksi: KURANG, SESUAI, LEBIH
+                if ($plan->produced_qty > 0 && $targetQty > 0) {
+                    if ($plan->produced_qty < $targetQty) {
+                        $plan->output_category = 'KURANG';
+                        $plan->output_variance = $plan->produced_qty - $targetQty;
+                    } elseif ($plan->produced_qty > $targetQty) {
+                        $plan->output_category = 'LEBIH';
+                        $plan->output_variance = $plan->produced_qty - $targetQty;
+                    } else {
+                        $plan->output_category = 'SESUAI';
+                        $plan->output_variance = 0.0;
+                    }
+                } else {
+                    $plan->output_category = null;
+                    $plan->output_variance = null;
+                }
+
                 $completedWeight = $plan->stages->where('status', 'COMPLETED')->sum('weight_percentage');
                 $plan->progress_percentage = min(100.0, (float) $completedWeight);
                 $plan->total_stage_weight = (float) $plan->stages->sum('weight_percentage');
+
+                // Rincian Kebutuhan Komponen & Estimasi Biaya Pengadaan
+                $requiredComponents = [];
+                $totalEstimatedBudget = 0.0;
+
+                foreach ($plan->items as $item) {
+                    $activeBom = $this->bom->findActiveVersionForProduct((int) $item->product_id);
+                    if ($activeBom) {
+                        try {
+                            $exploded = $this->bom->explode($activeBom, (string) $item->target_qty);
+                            foreach ($exploded as $comp) {
+                                $compProdId = (int) $comp['product_id'];
+                                $stockBalance = (float) DB::table('inventory_balances')
+                                    ->where('product_id', $compProdId)
+                                    ->where('stock_status', 'AVAILABLE')
+                                    ->sum(DB::raw('on_hand_qty - reserved_qty'));
+
+                                $grossQty = (float) $comp['gross_qty'];
+                                $unitCost = (float) ($comp['estimated_unit_cost'] ?? 0);
+                                $totalCost = (float) ($comp['estimated_total_cost'] ?? ($grossQty * $unitCost));
+
+                                if (! isset($requiredComponents[$compProdId])) {
+                                    $requiredComponents[$compProdId] = [
+                                        'product_id' => $compProdId,
+                                        'product_code' => $comp['product_code'],
+                                        'product_name' => $comp['product_name'],
+                                        'item_type' => $comp['item_type'],
+                                        'uom_code' => $comp['uom_code'],
+                                        'gross_qty' => $grossQty,
+                                        'available_qty' => $stockBalance,
+                                        'shortage_qty' => max(0, $grossQty - $stockBalance),
+                                        'estimated_unit_cost' => $unitCost,
+                                        'estimated_total_cost' => $totalCost,
+                                    ];
+                                } else {
+                                    $requiredComponents[$compProdId]['gross_qty'] += $grossQty;
+                                    $requiredComponents[$compProdId]['shortage_qty'] = max(0, $requiredComponents[$compProdId]['gross_qty'] - $requiredComponents[$compProdId]['available_qty']);
+                                    $requiredComponents[$compProdId]['estimated_total_cost'] += $totalCost;
+                                }
+                                $totalEstimatedBudget += $totalCost;
+                            }
+                        } catch (\Throwable) {
+                            // ignore cycle or unconfigured bom
+                        }
+                    }
+                }
+
+                $plan->required_components = array_values($requiredComponents);
+                $plan->total_estimated_budget = $totalEstimatedBudget;
 
                 return $plan;
             });
@@ -247,6 +396,9 @@ final class OperationsController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:160'],
             'weight_percentage' => ['required', 'numeric', 'min:0.01', 'max:100'],
+            'target_units' => ['nullable', 'numeric', 'min:0'],
+            'planned_date' => ['nullable', 'date'],
+            'produced_qty' => ['nullable', 'numeric', 'min:0'],
             'sequence' => ['sometimes', 'integer', 'min:1'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
@@ -268,11 +420,34 @@ final class OperationsController extends Controller
             ->where('production_plan_id', $productionPlan)
             ->max('sequence');
 
+        $targetQty = (float) DB::table('production_plan_items')
+            ->where('production_plan_id', $productionPlan)
+            ->sum('target_qty');
+
+        $targetUnits = isset($data['target_units']) && $data['target_units'] !== '' ? (float) $data['target_units'] : null;
+        $referenceTarget = ($targetUnits !== null && $targetUnits > 0) ? $targetUnits : $targetQty;
+
+        $producedQty = isset($data['produced_qty']) ? (float) $data['produced_qty'] : 0.0;
+        $outputCat = null;
+        if ($producedQty > 0 && $referenceTarget > 0) {
+            if ($producedQty < $referenceTarget) {
+                $outputCat = 'KURANG';
+            } elseif ($producedQty > $referenceTarget) {
+                $outputCat = 'LEBIH';
+            } else {
+                $outputCat = 'SESUAI';
+            }
+        }
+
         $stageId = DB::table('production_plan_stages')->insertGetId([
             'production_plan_id' => $productionPlan,
             'sequence' => $data['sequence'] ?? ($maxSeq + 1),
             'name' => $data['name'],
             'weight_percentage' => $data['weight_percentage'],
+            'target_units' => $targetUnits,
+            'planned_date' => $data['planned_date'] ?? null,
+            'produced_qty' => $producedQty,
+            'output_category' => $outputCat,
             'status' => 'PENDING',
             'notes' => $data['notes'] ?? null,
             'created_at' => now(),
@@ -296,6 +471,9 @@ final class OperationsController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:160'],
             'weight_percentage' => ['sometimes', 'numeric', 'min:0.01', 'max:100'],
+            'target_units' => ['nullable', 'numeric', 'min:0'],
+            'planned_date' => ['nullable', 'date'],
+            'produced_qty' => ['sometimes', 'numeric', 'min:0'],
             'status' => ['sometimes', 'string', Rule::in(['PENDING', 'IN_PROGRESS', 'COMPLETED'])],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
@@ -323,6 +501,39 @@ final class OperationsController extends Controller
         if (isset($data['name'])) $updatePayload['name'] = $data['name'];
         if (isset($data['weight_percentage'])) $updatePayload['weight_percentage'] = $data['weight_percentage'];
         if (isset($data['notes'])) $updatePayload['notes'] = $data['notes'];
+        if (array_key_exists('target_units', $data)) {
+            $updatePayload['target_units'] = $data['target_units'] !== null ? (float) $data['target_units'] : null;
+        }
+        if (array_key_exists('planned_date', $data)) {
+            $updatePayload['planned_date'] = $data['planned_date'];
+        }
+
+        if (isset($data['produced_qty']) || array_key_exists('target_units', $data)) {
+            $pQty = isset($data['produced_qty']) ? (float) $data['produced_qty'] : (float) ($stage->produced_qty ?? 0);
+            $updatePayload['produced_qty'] = $pQty;
+
+            $stgTarget = array_key_exists('target_units', $data)
+                ? ($data['target_units'] !== null ? (float) $data['target_units'] : null)
+                : (isset($stage->target_units) ? (float) $stage->target_units : null);
+
+            $targetQty = (float) DB::table('production_plan_items')
+                ->where('production_plan_id', $stage->production_plan_id)
+                ->sum('target_qty');
+
+            $referenceTarget = ($stgTarget !== null && $stgTarget > 0) ? $stgTarget : $targetQty;
+
+            if ($pQty > 0 && $referenceTarget > 0) {
+                if ($pQty < $referenceTarget) {
+                    $updatePayload['output_category'] = 'KURANG';
+                } elseif ($pQty > $referenceTarget) {
+                    $updatePayload['output_category'] = 'LEBIH';
+                } else {
+                    $updatePayload['output_category'] = 'SESUAI';
+                }
+            } else {
+                $updatePayload['output_category'] = null;
+            }
+        }
 
         if (isset($data['status'])) {
             $updatePayload['status'] = $data['status'];
@@ -547,6 +758,12 @@ final class OperationsController extends Controller
     {
         $this->requirePermission($request, 'rental.view');
 
+        $fgStockMap = DB::table('inventory_balances')
+            ->where('stock_status', 'AVAILABLE')
+            ->groupBy('product_id')
+            ->select('product_id', DB::raw('SUM(on_hand_qty - reserved_qty) as available_qty'))
+            ->pluck('available_qty', 'product_id');
+
         $orders = DB::table('rental_orders')
             ->join('customers', 'customers.id', '=', 'rental_orders.customer_id')
             ->leftJoin('products', 'products.id', '=', 'rental_orders.product_id')
@@ -563,8 +780,13 @@ final class OperationsController extends Controller
             )
             ->orderByDesc('rental_orders.id')
             ->get()
-            ->map(function ($ro) {
+            ->map(function ($ro) use ($fgStockMap) {
                 $ro->unit_codes = $ro->unit_codes_json ? json_decode($ro->unit_codes_json, true) : [];
+                $avail = (float) ($fgStockMap[$ro->product_id] ?? 0);
+                $ro->available_fg_stock = $avail;
+                $totUnits = (float) ($ro->total_units ?? 1);
+                $ro->is_stock_shortage = $avail < $totUnits;
+                $ro->shortage_qty = max(0, $totUnits - $avail);
                 $ro->items = DB::table('rental_order_items')
                     ->join('products', 'products.id', '=', 'rental_order_items.product_id')
                     ->leftJoin('product_serials', 'product_serials.id', '=', 'rental_order_items.product_serial_id')
@@ -582,35 +804,83 @@ final class OperationsController extends Controller
     {
         $this->requirePermission($request, 'rental.manage');
 
-        // Alur Sewa Sekolah (menyertakan production_plan_id)
-        if ($request->has('production_plan_id') || $request->input('order_type') === 'SCHOOL') {
+        // Alur Sewa Sekolah / Finished Good (tidak lagi mengacu pada rencana produksi)
+        $isSchoolRental = $request->input('order_type') === 'SCHOOL'
+            || $request->has('production_plan_id')
+            || (! $request->has('product_serial_id') && ! $request->has('expected_contents'));
+
+        if ($isSchoolRental) {
             $data = $request->validate([
                 'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')],
-                'production_plan_id' => ['required', 'integer', Rule::exists('production_plans', 'id')],
+                'product_id' => ['nullable', 'integer', Rule::exists('products', 'id')],
+                'total_units' => ['nullable', 'numeric', 'min:1'],
+                'production_plan_id' => ['nullable', 'integer', Rule::exists('production_plans', 'id')],
                 'start_date' => ['required', 'date'],
                 'notes' => ['nullable', 'string'],
                 'start_unit_no' => ['nullable', 'integer', 'min:1'],
             ]);
 
-            $plan = DB::table('production_plans')->where('id', $data['production_plan_id'])->first();
-            if (! $plan) {
-                throw new DomainException('Rencana produksi tidak ditemukan.', 'PLAN_NOT_FOUND', 404);
+            $plan = null;
+            if (! empty($data['production_plan_id'])) {
+                $plan = DB::table('production_plans')->where('id', $data['production_plan_id'])->first();
             }
 
-            // Ambil target produk & kuantitas dari rencana produksi
-            $planItem = DB::table('production_plan_items')
-                ->where('production_plan_id', $plan->id)
-                ->first();
+            // Menentukan produk Finished Good yang dipesan
+            $productId = null;
+            if (! empty($data['product_id'])) {
+                $productId = (int) $data['product_id'];
+            } elseif ($plan) {
+                $planItem = DB::table('production_plan_items')
+                    ->where('production_plan_id', $plan->id)
+                    ->first();
+                $productId = $planItem ? (int) $planItem->product_id : null;
+            }
 
-            $productId = $planItem ? (int) $planItem->product_id : (int) DB::table('products')->where('code', '1001')->value('id');
-            $targetQty = $planItem ? (int) $planItem->target_qty : 10;
-            if ($targetQty < 1) $targetQty = 1;
+            if (! $productId) {
+                $productId = (int) (DB::table('products')->where('code', '1001')->value('id') ?? DB::table('products')->value('id'));
+            }
+
+            // Menentukan kuantitas / banyak produk yang ingin dipesan sekolah
+            $targetQty = ! empty($data['total_units']) ? (int) $data['total_units'] : null;
+            if (! $targetQty && $plan) {
+                $planItem = DB::table('production_plan_items')
+                    ->where('production_plan_id', $plan->id)
+                    ->first();
+                $targetQty = $planItem ? (int) $planItem->target_qty : 10;
+            }
+            if (! $targetQty || $targetQty < 1) {
+                $targetQty = 10;
+            }
 
             $product = DB::table('products')->where('id', $productId)->first();
-            $productCode = $product ? $product->code : '1001';
+            if (! $product) {
+                throw new DomainException('Produk Finished Good tidak ditemukan.', 'PRODUCT_NOT_FOUND', 404);
+            }
+            if ($product->physical_type !== 'PHYSICAL') {
+                throw new DomainException("Hanya produk Finished Good fisik yang dapat disewakan.", 'INVALID_RENTAL_PRODUCT', 422);
+            }
 
-            // Hitung nomor unit serial sekuensial per produk (dapat menggunakan nomor awal tertentu untuk pakai ulang unit yang sudah ada)
-            if (!empty($data['start_unit_no']) && (int) $data['start_unit_no'] > 0) {
+            $productCode = $product->code ?: '1001';
+
+            // Verifikasi stok Finished Good yang tersedia di gudang
+            $fgAvailableStock = (float) DB::table('inventory_balances')
+                ->where('product_id', $productId)
+                ->where('stock_status', 'AVAILABLE')
+                ->sum(DB::raw('on_hand_qty - reserved_qty'));
+
+            $isShortage = $fgAvailableStock < $targetQty;
+            $shortageQty = max(0, $targetQty - $fgAvailableStock);
+            $stockNotice = $isShortage
+                ? "Keterangan: Stok Finished Good [{$productCode}] di gudang kurang (Tersedia: {$fgAvailableStock} unit, Dipesan: {$targetQty} unit, Kurang: {$shortageQty} unit)."
+                : "Stok Finished Good [{$productCode}] di gudang mencukupi (Tersedia: {$fgAvailableStock} unit).";
+
+            $finalNotes = $data['notes'] ?? '';
+            if ($isShortage) {
+                $finalNotes = $finalNotes ? ($finalNotes . ' | ' . $stockNotice) : $stockNotice;
+            }
+
+            // Hitung nomor unit serial sekuensial per produk
+            if (! empty($data['start_unit_no']) && (int) $data['start_unit_no'] > 0) {
                 $startUnit = (int) $data['start_unit_no'];
                 $endUnit = $startUnit + $targetQty - 1;
             } else {
@@ -631,12 +901,12 @@ final class OperationsController extends Controller
                 'transaction_kind' => 'RENTAL',
                 'order_type' => 'SCHOOL',
                 'customer_id' => $data['customer_id'],
-                'production_plan_id' => $data['production_plan_id'],
+                'production_plan_id' => $data['production_plan_id'] ?? null,
                 'product_id' => $productId,
                 'start_date' => $data['start_date'],
                 'expected_return_date' => date('Y-m-d', strtotime($data['start_date'] . ' + 90 days')),
                 'status' => 'ACTIVE',
-                'notes' => $data['notes'] ?? null,
+                'notes' => $finalNotes ?: null,
                 'barcode_prefix' => $productCode,
                 'start_unit_no' => $startUnit,
                 'end_unit_no' => $endUnit,
@@ -663,6 +933,11 @@ final class OperationsController extends Controller
                 ->first();
 
             $created->unit_codes = $unitCodes;
+            $created->available_fg_stock = $fgAvailableStock;
+            $created->fg_stock_sufficient = ! $isShortage;
+            $created->is_stock_shortage = $isShortage;
+            $created->shortage_qty = $shortageQty;
+            $created->stock_notice = $stockNotice;
 
             return response()->json(['data' => $created], 201);
         }

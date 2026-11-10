@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => {
         '/api': { target: apiTarget, changeOrigin: true },
       },
     },
+    build: {
+      outDir: 'dist_build',
+    },
     test: {
       environment: 'jsdom',
       globals: true,

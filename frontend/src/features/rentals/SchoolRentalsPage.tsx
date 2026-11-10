@@ -1,4 +1,4 @@
-import { useState, useMemo, type FormEvent } from 'react';
+import { useState, useMemo, useEffect, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Barcode,
@@ -24,7 +24,7 @@ import { StatCard } from '@/components/StatCard';
 import { EmptyState, LoadingState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/features/auth/AuthContext';
-import { useCustomers } from '@/features/master-data/api';
+import { useCustomers, useProducts, useProductStock } from '@/features/master-data/api';
 import { QualityInspectionModal } from '@/features/operations/QualityInspectionModal';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
 import { SchoolRentalBarcodeModal, type SchoolRentalRecord } from './SchoolRentalBarcodeModal';
@@ -87,12 +87,6 @@ export function SchoolRentalsPage() {
   const unitTracking = useQuery({
     queryKey: ['rental-orders', 'units-tracking'],
     queryFn: async () => (await http.get<ResourceResponse<{ units: any[]; inspections: any[] }>>('/rental-orders/units-tracking')).data.data,
-  });
-
-  // Query rencana produksi untuk relasi batch
-  const productionPlans = useQuery({
-    queryKey: ['production-plans'],
-    queryFn: async () => (await http.get<ResourceResponse<any[]>>('/production-plans')).data.data,
   });
 
   const schoolRentals = rentals.data ?? [];
@@ -262,7 +256,7 @@ export function SchoolRentalsPage() {
                   <tr>
                     <th style={{ width: '140px' }}>No. Order Sewa</th>
                     <th>Pihak Sekolah (Customer)</th>
-                    <th>Rencana Produksi Selesai</th>
+                    <th>Ketersediaan Stok Gudang</th>
                     <th>Produk & Unit Serial Barcode</th>
                     <th style={{ width: '130px' }}>Tgl. Mulai Sewa</th>
                     <th style={{ width: '110px' }}>Status</th>
@@ -293,19 +287,68 @@ export function SchoolRentalsPage() {
                           )}
                         </td>
                         <td>
-                          {r.production_plan_no ? (
+                          {r.is_stock_shortage ? (
                             <div>
-                              <code className="font-semibold">{r.production_plan_no}</code>
-                              {r.production_plan_title && (
-                                <div className="text-xs text-[var(--color-text-muted)]">{r.production_plan_title}</div>
+                              <span
+                                className="chip"
+                                style={{
+                                  background: '#fef2f2',
+                                  color: '#b91c1c',
+                                  border: '1px solid #fecaca',
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                                title={r.stock_notice || 'Stok finished good di gudang kurang'}
+                              >
+                                <span>⚠️ Stok Kurang</span>
+                                {r.shortage_qty !== undefined && r.shortage_qty > 0 && (
+                                  <span>({formatNumber(r.shortage_qty)} Unit)</span>
+                                )}
+                              </span>
+                              <div className="text-xs text-red-600 mt-1 font-medium">
+                                Tersedia: {formatNumber(r.available_fg_stock ?? 0)} / Pesan: {formatNumber(r.total_units || 1)} unit
+                              </div>
+                              {r.production_plan_no && (
+                                <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Ref: {r.production_plan_no}</div>
                               )}
                             </div>
                           ) : (
-                            <span className="table__muted">Rencana Selesai</span>
+                            <div>
+                              <span
+                                className="chip"
+                                style={{
+                                  background: '#f0fdf4',
+                                  color: '#166534',
+                                  border: '1px solid #bbf7d0',
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                                title="Stok Finished Good mencukupi di gudang"
+                              >
+                                <span>✓ Stok Siap</span>
+                                {r.available_fg_stock !== undefined && (
+                                  <span>({formatNumber(r.available_fg_stock)} Unit)</span>
+                                )}
+                              </span>
+                              <div className="text-xs text-emerald-700 mt-1 font-medium">
+                                Cukup untuk {formatNumber(r.total_units || 1)} unit
+                              </div>
+                              {r.production_plan_no && (
+                                <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Ref: {r.production_plan_no}</div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td>
-                          <div className="font-medium">{r.product_name || 'Mobile Learning Kit (MLK) Standar'}</div>
+                          <div className="font-semibold text-[var(--color-primary-dark, #263f7d)]">
+                            {r.product_name || 'Mobile Learning Kit (MLK) Standar'}
+                          </div>
                           {startCode && endCode ? (
                             <div className="text-xs font-mono font-bold text-emerald-700 mt-0.5">
                               Unit: {startCode} s/d {endCode} ({r.total_units || 1} Unit)
@@ -622,13 +665,19 @@ export function SchoolRentalsPage() {
       {/* Modal Buat Order Sewa Sekolah Baru */}
       {isNewOpen && (
         <NewSchoolRentalModal
-          plans={productionPlans.data ?? []}
           onClose={() => setIsNewOpen(false)}
           onSuccess={(createdOrder) => {
             qc.invalidateQueries({ queryKey: ['rental-orders'] });
             qc.invalidateQueries({ queryKey: ['rental-orders', 'units-tracking'] });
             setIsNewOpen(false);
-            notify('Order sewa sekolah berhasil dibuat.', 'success');
+            if (createdOrder?.is_stock_shortage) {
+              notify(
+                `Order sewa dibuat. Perhatian: Stok Finished Good di gudang kurang (${formatNumber(createdOrder.shortage_qty ?? 0)} unit).`,
+                'info'
+              );
+            } else {
+              notify('Order sewa sekolah berhasil dibuat.', 'success');
+            }
             if (createdOrder) {
               setBarcodeRental(createdOrder);
             }
@@ -789,40 +838,74 @@ function InspectionDetailModal({
 }
 
 function NewSchoolRentalModal({
-  plans,
   onClose,
   onSuccess,
 }: {
-  plans: any[];
   onClose: () => void;
   onSuccess: (order: SchoolRentalRecord) => void;
 }) {
   const { notify } = useToast();
   const customers = useCustomers();
+  const productsQuery = useProducts({ per_page: 100 });
 
-  // Filter rencana produksi yang berstatus selesai (COMPLETED atau progress 100%)
-  const completedPlans = useMemo(() => {
-    const list = plans.filter((p) => p.status === 'COMPLETED' || p.progress_percentage >= 100);
-    return list.length > 0 ? list : plans;
-  }, [plans]);
+  // Filter produk finished good / fisik yang dapat disewakan
+  const finishedGoods = useMemo(() => {
+    const list = productsQuery.data?.data ?? [];
+    const filtered = list.filter((p) =>
+      p.physical_type === 'PHYSICAL' && (
+        p.category?.code === 'FG' ||
+        p.category?.name?.toLowerCase().includes('finished') ||
+        p.category?.name?.toLowerCase().includes('kit') ||
+        p.code === '1001' ||
+        p.is_manufactured ||
+        p.is_rentable
+      )
+    );
+    return filtered.length > 0 ? filtered : list.filter((p) => p.physical_type === 'PHYSICAL');
+  }, [productsQuery.data?.data]);
 
   const [form, setForm] = useState({
     customer_id: '',
-    production_plan_id: completedPlans[0]?.id ? String(completedPlans[0].id) : '',
+    product_id: '',
+    total_units: 10,
     start_date: new Date().toISOString().slice(0, 10),
     start_unit_no: '',
     notes: '',
   });
 
-  const selectedPlan = useMemo(() => {
-    return completedPlans.find((p) => String(p.id) === String(form.production_plan_id));
-  }, [completedPlans, form.production_plan_id]);
+  // Default ke produk MLK (kode 1001) atau produk FG pertama
+  useEffect(() => {
+    if (!form.product_id && finishedGoods.length > 0) {
+      const mlkProd = finishedGoods.find((p) => p.code === '1001') || finishedGoods[0];
+      if (mlkProd) {
+        setForm((prev) => ({ ...prev, product_id: String(mlkProd.id) }));
+      }
+    }
+  }, [finishedGoods, form.product_id]);
+
+  const selectedProductId = form.product_id ? Number(form.product_id) : null;
+  const selectedProduct = useMemo(() => {
+    return finishedGoods.find((p) => p.id === selectedProductId);
+  }, [finishedGoods, selectedProductId]);
+
+  const stockQuery = useProductStock(selectedProductId);
+
+  const availableFgStock = useMemo(() => {
+    return (stockQuery.data ?? [])
+      .filter((b) => b.stock_status === 'AVAILABLE')
+      .reduce((sum, b) => sum + Number(b.available_qty ?? b.on_hand_qty ?? 0), 0);
+  }, [stockQuery.data]);
+
+  const requestedUnits = Math.max(1, Number(form.total_units) || 1);
+  const isStockShortage = availableFgStock < requestedUnits;
+  const shortageQty = Math.max(0, requestedUnits - availableFgStock);
 
   const save = useMutation({
     mutationFn: async () => {
       const res = await http.post<{ data: SchoolRentalRecord }>('/rental-orders', {
         customer_id: Number(form.customer_id),
-        production_plan_id: Number(form.production_plan_id),
+        product_id: Number(form.product_id),
+        total_units: requestedUnits,
         start_date: form.start_date,
         start_unit_no: form.start_unit_no ? Number(form.start_unit_no) : undefined,
         notes: form.notes.trim() || null,
@@ -834,18 +917,22 @@ function NewSchoolRentalModal({
       onSuccess(data);
     },
     onError: (err: any) => {
-      notify(err.message || 'Gagal menyimpan order sewa sekolah.', 'error');
+      notify(err?.response?.data?.message || err?.message || 'Gagal menyimpan order sewa sekolah.', 'error');
     },
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!form.customer_id) {
-      notify('Pihak sekolah wajib dipilih.', 'error');
+      notify('Pihak sekolah mitra wajib dipilih.', 'error');
       return;
     }
-    if (!form.production_plan_id) {
-      notify('Rencana produksi selesai wajib dipilih.', 'error');
+    if (!form.product_id) {
+      notify('Jenis produk Finished Good wajib dipilih.', 'error');
+      return;
+    }
+    if (!form.total_units || Number(form.total_units) <= 0) {
+      notify('Banyak produk yang ingin dipesan sekolah wajib lebih dari 0.', 'error');
       return;
     }
     if (!form.start_date) {
@@ -858,14 +945,14 @@ function NewSchoolRentalModal({
   return (
     <Modal
       open
-      title="Buat Order Sewa Finished Good MLK (Sekolah)"
-      description="Pesanan sewa ini mengambil unit MLK dari rencana produksi yang sudah selesai. Nomor unit fisik dapat digunakan berulang kali untuk penyewaan ke sekolah berbeda."
+      title="Buat Order Sewa Finished Good (Pihak Sekolah)"
+      description="Order sewa finished good mengambil jenis produk dan jumlah yang dipesan sekolah dari stok gudang. Jika stok fisik kurang, sistem akan memberikan keterangan stok kurang."
       onClose={onClose}
       footer={
         <>
           <Button onClick={onClose}>Batal</Button>
           <Button variant="primary" type="submit" form="new-school-rental-form" loading={save.isPending}>
-            Simpan & Terbitkan Unit Sewa
+            Simpan & Terbitkan Order Sewa
           </Button>
         </>
       }
@@ -876,7 +963,7 @@ function NewSchoolRentalModal({
           label="Pihak Sekolah Mitra (Customer)"
           htmlFor="rent-cust"
           required
-          hint="Hanya menampilkan pihak customer bertipe sekolah yang terdaftar"
+          hint="Pilih sekolah mitra yang memesan sewa unit finished good"
         >
           <select
             id="rent-cust"
@@ -894,75 +981,107 @@ function NewSchoolRentalModal({
           </select>
         </FormField>
 
-        {/* 2. Rencana Produksi Selesai */}
+        {/* 2. Jenis Produk Finished Good */}
         <FormField
-          label="Rencana Produksi (Status Selesai)"
-          htmlFor="rent-plan"
+          label="Jenis Produk Finished Good"
+          htmlFor="rent-product"
           required
-          hint="Produk dan kuantitas unit sewa diambil otomatis dari hasil batch rencana produksi ini"
+          hint="Pilih produk finished good yang akan disewa (misal: Mobile Learning Kit / MLK)"
         >
           <select
-            id="rent-plan"
-            className="select font-medium"
-            value={form.production_plan_id}
-            onChange={(e) => setForm({ ...form, production_plan_id: e.target.value })}
+            id="rent-product"
+            className="select font-semibold"
+            value={form.product_id}
+            onChange={(e) => setForm({ ...form, product_id: e.target.value })}
             required
           >
-            <option value="">Pilih rencana produksi selesai...</option>
-            {completedPlans.map((p) => {
-              const targetItem = p.items?.[0];
-              const qtyInfo = targetItem ? `${targetItem.target_qty} Unit` : 'Tersedia';
-              const prodName = targetItem?.product_name || 'MLK Standar';
-              return (
-                <option key={p.id} value={p.id}>
-                  [{p.plan_no}] {p.title} &bull; {prodName} ({qtyInfo})
-                </option>
-              );
-            })}
+            <option value="">Pilih jenis produk finished good...</option>
+            {finishedGoods.map((p) => (
+              <option key={p.id} value={p.id}>
+                [{p.code}] {p.name} {p.category?.name ? `(${p.category.name})` : ''}
+              </option>
+            ))}
           </select>
         </FormField>
 
-        {/* 3. Opsi Nomor Unit Serial (Pakai Ulang Unit yang Ada) */}
+        {/* 3. Banyak Produk yang Ingin Dipesan Sekolah */}
         <FormField
-          label="Nomor Awal Unit (Opsional — Pakai Ulang Nomor Unit)"
-          htmlFor="rent-start-unit"
-          hint="Kosongkan untuk nomor baru berlanjut otomatis, atau masukkan nomor awal (misal: 1) untuk memakai ulang unit 1001_01 yang telah selesai disewa sekolah sebelumnya."
+          label="Banyak Produk yang Ingin Dipesan Sekolah (Unit)"
+          htmlFor="rent-total-units"
+          required
+          hint="Masukkan total kuantitas unit finished good yang dibutuhkan sekolah"
         >
           <input
-            id="rent-start-unit"
+            id="rent-total-units"
             type="number"
             min="1"
-            className="input font-mono"
-            placeholder="Otomatis lanjut baru (atau isi misal: 1 untuk pakai ulang 1001_01)"
-            value={form.start_unit_no}
-            onChange={(e) => setForm({ ...form, start_unit_no: e.target.value })}
+            className="input font-mono font-bold text-base"
+            placeholder="Contoh: 10"
+            value={form.total_units}
+            onChange={(e) => setForm({ ...form, total_units: Math.max(1, parseInt(e.target.value) || 0) })}
+            required
           />
         </FormField>
 
-        {/* Ringkasan Produk & Target Unit Terpilih */}
-        {selectedPlan && (
-          <div
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 6,
-              padding: '10px 14px',
-              fontSize: 12,
-            }}
-          >
-            <span className="text-xs text-[var(--color-text-muted)] block mb-1">
-              Informasi Unit yang Akan Disewakan:
-            </span>
-            <div className="font-semibold text-[var(--color-primary-dark, #263f7d)]">
-              {selectedPlan.items?.[0]?.product_name || 'Mobile Learning Kit (MLK) Standar'}
-            </div>
-            <div className="text-xs font-mono font-bold text-emerald-700 mt-1">
-              Kuantitas Sewa: {selectedPlan.items?.[0]?.target_qty || 10} Unit {form.start_unit_no ? `(Pakai ulang mulai unit: ${form.start_unit_no})` : '(Nomor unit lanjut otomatis)'}
-            </div>
+        {/* 4. Keterangan Ketersediaan Stok Finished Good di Gudang */}
+        {selectedProduct && (
+          <div style={{ marginTop: 2, marginBottom: 2 }}>
+            {stockQuery.isLoading ? (
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                Memeriksa stok fisik Finished Good di gudang...
+              </div>
+            ) : isStockShortage ? (
+              <div
+                style={{
+                  background: '#fef2f2',
+                  border: '1.5px solid #fecaca',
+                  borderRadius: 6,
+                  padding: '12px 14px',
+                  color: '#991b1b',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                      Keterangan: Stok Finished Good di Gudang Kurang!
+                    </div>
+                    <div style={{ fontSize: '0.825rem', marginTop: 4, lineHeight: 1.4 }}>
+                      Tersedia di gudang: <strong>{formatNumber(availableFgStock)} unit</strong> &bull; Dipesan sekolah: <strong>{formatNumber(requestedUnits)} unit</strong> &bull; <span style={{ color: '#dc2626', fontWeight: 800 }}>Kekurangan: {formatNumber(shortageQty)} unit</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', marginTop: 6, color: '#7f1d1d', lineHeight: 1.35 }}>
+                      Order sewa tetap dapat dibuat dengan catatan kekurangan stok. Segera jadwalkan rencana produksi dan perakitan tambahan di modul Operasi.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  border: '1.5px solid #bbf7d0',
+                  borderRadius: 6,
+                  padding: '12px 14px',
+                  color: '#166534',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>✓</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                      Stok Finished Good di Gudang Mencukupi ({formatNumber(availableFgStock)} Unit Tersedia)
+                    </div>
+                    <div style={{ fontSize: '0.825rem', marginTop: 4 }}>
+                      Stok gudang mencukupi untuk memenuhi pesanan sekolah sejumlah <strong>{formatNumber(requestedUnits)} unit</strong>. Unit serial barcode siap dialokasikan.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* 4. Tanggal Mulai Sewa */}
+        {/* 5. Tanggal Mulai Sewa */}
         <FormField label="Tanggal Mulai Sewa" htmlFor="rent-start" required>
           <input
             id="rent-start"
@@ -974,7 +1093,24 @@ function NewSchoolRentalModal({
           />
         </FormField>
 
-        {/* 5. Catatan Tambahan */}
+        {/* 6. Opsi Nomor Unit Serial (Pakai Ulang Unit yang Ada) */}
+        <FormField
+          label="Nomor Awal Unit (Opsional — Pakai Ulang Nomor Unit)"
+          htmlFor="rent-start-unit"
+          hint="Kosongkan untuk penomoran otomatis berlanjut, atau isi nomor awal (misal: 1) jika ingin menggunakan kembali nomor unit yang telah dikembalikan ke gudang."
+        >
+          <input
+            id="rent-start-unit"
+            type="number"
+            min="1"
+            className="input font-mono"
+            placeholder="Otomatis lanjut nomor baru (atau isi misal: 1 untuk pakai ulang 1001_01)"
+            value={form.start_unit_no}
+            onChange={(e) => setForm({ ...form, start_unit_no: e.target.value })}
+          />
+        </FormField>
+
+        {/* 7. Catatan Tambahan */}
         <FormField label="Catatan Tambahan (Opsional)" htmlFor="rent-notes">
           <textarea
             id="rent-notes"

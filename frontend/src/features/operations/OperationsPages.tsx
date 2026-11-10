@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calculator, CheckCircle2, ListOrdered, Plus, Trash2 } from 'lucide-react';
+import { Boxes, Calculator, CheckCircle2, Hammer, Layers, ListOrdered, PackageCheck, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { http, newIdempotencyKey } from '@/api/client';
 import type { ResourceResponse } from '@/api/types';
 import { Button } from '@/components/Button';
@@ -13,6 +13,7 @@ import { useToast } from '@/components/Toast';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useLocations, usePartners, useProducts } from '@/features/master-data/api';
 import { formatDate, formatNumber, formatRupiah } from '@/lib/format';
+import { AssembleStageModal } from '@/features/catalog/AssembleStageModal';
 import { PlanStagesModal } from './PlanStagesModal';
 import { QualityInspectionModal } from './QualityInspectionModal';
 
@@ -23,6 +24,7 @@ export function ProcurementPage() {
   const qc = useQueryClient();
   const { notify } = useToast();
   const [openNew, setOpenNew] = useState(false);
+  const [selectedPoForGrn, setSelectedPoForGrn] = useState<any | null>(null);
 
   const pos = useQuery({
     queryKey: ['procurement', 'pos'],
@@ -47,7 +49,7 @@ export function ProcurementPage() {
       <PageHeader
         eyebrow="Pengadaan"
         title="Purchase Order & Penerimaan Barang (GRN)"
-        description="Pencatatan pengadaan komponen mandiri dengan input teks supplier, nomor WhatsApp, serta status pembelian (Dipesan, Dikirim, Selesai Diterima)."
+        description="Pencatatan pengadaan komponen dan finished good fisik dengan nomor WhatsApp supplier, serta pencatatan penerimaan fisik barang ke rak gudang (GRN)."
         actions={
           canCreate && (
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => setOpenNew(true)}>
@@ -61,7 +63,7 @@ export function ProcurementPage() {
         {pos.isLoading ? (
           <LoadingState />
         ) : !pos.data?.length ? (
-          <EmptyState title="Belum ada Purchase Order" description="Buat PO baru untuk mencatat pengadaan komponen." />
+          <EmptyState title="Belum ada Purchase Order" description="Buat PO baru untuk mencatat pengadaan komponen fisik atau finished good." />
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -73,7 +75,7 @@ export function ProcurementPage() {
                   <th>Item (Dipesan / Diterima)</th>
                   <th>Subtotal</th>
                   <th>Status Pembelian</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>Aksi Status</th>
+                  <th style={{ width: '180px', textAlign: 'center' }}>Aksi Status & Penerimaan</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,7 +107,18 @@ export function ProcurementPage() {
                       <StatusBadge status={po.status} />
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {(po.status === 'DIPESAN' || po.status === 'DIKIRIM') && canCreate && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={<PackageCheck size={13} />}
+                            onClick={() => setSelectedPoForGrn(po)}
+                            title="Terima barang dan posting fisik ke rak gudang (GRN)"
+                          >
+                            Terima Barang (GRN)
+                          </Button>
+                        )}
                         {po.status === 'DIPESAN' && (
                           <Button
                             size="sm"
@@ -149,20 +162,59 @@ export function ProcurementPage() {
           }}
         />
       )}
+
+      {selectedPoForGrn && (
+        <GoodsReceiptModal
+          po={selectedPoForGrn}
+          onClose={() => setSelectedPoForGrn(null)}
+          onReceived={() => {
+            qc.invalidateQueries({ queryKey: ['procurement', 'pos'] });
+            notify('Penerimaan Barang (GRN) berhasil diposting ke inventaris gudang.', 'success');
+            setSelectedPoForGrn(null);
+          }}
+        />
+      )}
     </>
   );
 }
 
-function NewPoModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function NewPoModal({
+  initialProductId,
+  initialQty,
+  initialPrice,
+  onClose,
+  onCreated,
+}: {
+  initialProductId?: number | string;
+  initialQty?: number | string;
+  initialPrice?: number | string;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
   const products = useProducts({ per_page: 100, product_type: 'PRODUCT' });
   const [form, setForm] = useState({
     supplier_name: '',
     supplier_phone: '',
     status: 'DIPESAN',
     order_date: new Date().toISOString().slice(0, 10),
-    product_id: '',
-    ordered_qty: '50',
-    unit_price: '18500',
+    product_id: initialProductId ? String(initialProductId) : '',
+    ordered_qty: initialQty ? String(initialQty) : '50',
+    unit_price: initialPrice ? String(initialPrice) : '18500',
+  });
+
+  // Aturan Bisnis: Hanya produk berupa Komponen atau Finished Good dengan kategori fisik
+  const eligibleProducts = (products.data?.data ?? []).filter((p) => {
+    const isPhysical = p.physical_type === 'PHYSICAL';
+    const catCode = p.category?.code?.toUpperCase() ?? '';
+    const catName = p.category?.name?.toLowerCase() ?? '';
+    const isEligibleCat =
+      ['COMP', 'FG', 'WIP-MOD', 'WIP-BOX'].includes(catCode) ||
+      catName.includes('komponen') ||
+      catName.includes('finished good') ||
+      catName.includes('spare part') ||
+      (p.product_type === 'PRODUCT' && !['SRV', 'PROG'].includes(catCode));
+
+    return isPhysical && isEligibleCat;
   });
 
   const save = useMutation({
@@ -190,6 +242,7 @@ function NewPoModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
     <Modal
       open
       title="Buat Purchase Order Baru"
+      description="Hanya produk berupa Komponen atau Finished Good fisik yang dapat dipesan melalui Purchase Order & Penerimaan Barang (GRN)."
       onClose={onClose}
       footer={
         <>
@@ -256,18 +309,31 @@ function NewPoModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
           />
         </FormField>
 
-        <FormField label="Komponen / Produk" htmlFor="po-prod" required>
+        <FormField
+          label="Komponen / Finished Good Fisik"
+          htmlFor="po-prod"
+          required
+          hint="Hanya produk berupa komponen atau finished good dengan kategori fisik"
+        >
           <select
             id="po-prod"
             className="select"
             value={form.product_id}
-            onChange={(e) => setForm({ ...form, product_id: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value;
+              const prod = products.data?.data.find((p) => String(p.id) === val);
+              setForm((prev) => ({
+                ...prev,
+                product_id: val,
+                unit_price: prod?.reference_purchase_price ? String(prod.reference_purchase_price) : prev.unit_price,
+              }));
+            }}
             required
           >
-            <option value="">Pilih komponen / produk</option>
-            {products.data?.data.map((p) => (
+            <option value="">Pilih komponen / finished good fisik</option>
+            {eligibleProducts.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
+                [{p.category?.name ?? 'Fisik'}] {p.code} — {p.name}
               </option>
             ))}
           </select>
@@ -302,6 +368,344 @@ function NewPoModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
   );
 }
 
+function GoodsReceiptModal({ po, onClose, onReceived }: { po: any; onClose: () => void; onReceived: () => void }) {
+  const locations = useLocations();
+  const { notify } = useToast();
+
+  const [receivingLocationId, setReceivingLocationId] = useState(
+    locations.data?.[0]?.id ? String(locations.data[0].id) : ''
+  );
+  const [items, setItems] = useState<Array<{ po_item_id: number; product_code: string; product_name: string; remaining_qty: number; received_qty: string; accepted_qty: string; rejected_qty: string }>>(() => {
+    return (po.items ?? []).map((it: any) => {
+      const remaining = Math.max(0, Number(it.ordered_qty) - Number(it.received_qty));
+      return {
+        po_item_id: it.id,
+        product_code: it.product_code,
+        product_name: it.product_name,
+        remaining_qty: remaining,
+        received_qty: String(remaining > 0 ? remaining : Number(it.ordered_qty)),
+        accepted_qty: String(remaining > 0 ? remaining : Number(it.ordered_qty)),
+        rejected_qty: '0',
+      };
+    });
+  });
+
+  const receiveMutation = useMutation({
+    mutationFn: async () => {
+      if (!receivingLocationId) {
+        throw new Error('Pilih lokasi rak gudang tempat penyimpanan barang.');
+      }
+      await http.post(
+        `/purchase-orders/${po.id}/goods-receipts`,
+        {
+          receiving_location_id: Number(receivingLocationId),
+          items: items.map((it) => ({
+            purchase_order_item_id: it.po_item_id,
+            received_qty: it.received_qty,
+            accepted_qty: it.accepted_qty,
+            rejected_qty: it.rejected_qty,
+          })),
+        },
+        {
+          headers: {
+            'X-Idempotency-Key': newIdempotencyKey(),
+          },
+        }
+      );
+    },
+    onSuccess: onReceived,
+    onError: (err: any) => {
+      notify(err?.response?.data?.message || err.message || 'Gagal memproses Penerimaan Barang (GRN).', 'error');
+    },
+  });
+
+  return (
+    <Modal
+      open
+      title={`Penerimaan Barang (GRN) — ${po.po_no}`}
+      description="Penerimaan fisik barang komponen/finished good ke rak gudang dan pencatatan ledger inventaris."
+      size="md"
+      onClose={onClose}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, width: '100%' }}>
+          <Button variant="secondary" onClick={onClose} disabled={receiveMutation.isPending}>
+            Batal
+          </Button>
+          <Button
+            variant="primary"
+            loading={receiveMutation.isPending}
+            onClick={() => receiveMutation.mutate()}
+          >
+            Posting Penerimaan (GRN)
+          </Button>
+        </div>
+      }
+    >
+      <form onSubmit={(e) => { e.preventDefault(); receiveMutation.mutate(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <FormField label="Lokasi Rak / Gudang Penerimaan" htmlFor="grn-loc" required hint="Lokasi fisik tempat komponen atau finished good disimpan">
+          <select
+            id="grn-loc"
+            className="select"
+            value={receivingLocationId}
+            onChange={(e) => setReceivingLocationId(e.target.value)}
+            required
+          >
+            <option value="">Pilih lokasi rak gudang penerimaan</option>
+            {locations.data?.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.warehouse?.name ?? 'Gudang'} — {loc.code} ({loc.name})
+              </option>
+            ))}
+          </select>
+        </FormField>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-primary-dark)' }}>
+            Daftar Produk Fisik yang Diterima
+          </div>
+          {items.map((it, idx) => (
+            <div
+              key={it.po_item_id}
+              style={{
+                background: 'var(--color-surface-muted, #f8fafc)',
+                border: '1px solid var(--color-border, #e2e8f0)',
+                borderRadius: 8,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
+                  <code>{it.product_code}</code> — {it.product_name}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                  Sisa Pesanan Belum Diterima: <strong>{it.remaining_qty} unit</strong>
+                </div>
+              </div>
+
+              <div className="grid grid--2" style={{ gap: 8 }}>
+                <FormField label="Kuantitas Diterima & Lolos QC" htmlFor={`grn-accepted-${idx}`} required>
+                  <input
+                    id={`grn-accepted-${idx}`}
+                    type="number"
+                    step="any"
+                    min="0"
+                    className="input font-mono font-bold"
+                    value={it.accepted_qty}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setItems((prev) => {
+                        const next = [...prev];
+                        next[idx] = { ...next[idx], accepted_qty: val, received_qty: String(Number(val) + Number(next[idx].rejected_qty)) };
+                        return next;
+                      });
+                    }}
+                    required
+                  />
+                </FormField>
+
+                <FormField label="Kuantitas Ditolak (QC Gagal)" htmlFor={`grn-rejected-${idx}`}>
+                  <input
+                    id={`grn-rejected-${idx}`}
+                    type="number"
+                    step="any"
+                    min="0"
+                    className="input font-mono"
+                    value={it.rejected_qty}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setItems((prev) => {
+                        const next = [...prev];
+                        next[idx] = { ...next[idx], rejected_qty: val, received_qty: String(Number(next[idx].accepted_qty) + Number(val)) };
+                        return next;
+                      });
+                    }}
+                  />
+                </FormField>
+              </div>
+            </div>
+          ))}
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Modal Rincian Kebutuhan Komponen & Estimasi Biaya Pengadaan
+function PlanRequirementsModal({
+  plan,
+  onClose,
+  onOpenProcurement,
+}: {
+  plan: any;
+  onClose: () => void;
+  onOpenProcurement?: (item?: any) => void;
+}) {
+  const requirements = plan.required_components ?? [];
+  const totalBudget = Number(plan.total_estimated_budget ?? 0);
+  const targetQty = Number(plan.target_qty ?? 0);
+
+  return (
+    <Modal
+      open
+      title={`Kebutuhan Komponen & Estimasi Biaya — ${plan.plan_no}`}
+      description={`Kebutuhan komponen dan estimasi biaya material untuk memproduksi target total ${formatNumber(targetQty)} unit produk.`}
+      size="lg"
+      onClose={onClose}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontSize: '0.85rem' }}>
+            Total Estimasi Biaya Pengadaan: <strong style={{ color: 'var(--color-primary-dark, #263f7d)', fontSize: '1.05rem' }}>{formatRupiah(totalBudget)}</strong>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" onClick={onClose}>
+              Tutup
+            </Button>
+            {onOpenProcurement && (
+              <Button
+                variant="primary"
+                icon={<ShoppingCart size={14} />}
+                onClick={() => {
+                  onClose();
+                  const shortageItem = requirements.find((r: any) => Number(r.shortage_qty) > 0) || requirements[0];
+                  onOpenProcurement(shortageItem);
+                }}
+              >
+                Lanjutkan ke Pengadaan (Buat PO)
+              </Button>
+            )}
+          </div>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'var(--color-surface-muted, #f8fafc)',
+            border: '1px solid var(--color-border, #e2e8f0)',
+            borderRadius: 8,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+              Target Produk Rencana Produksi
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-primary-dark, #263f7d)' }}>
+              {plan.title} ({formatNumber(targetQty)} Unit)
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+              Tanggal Rencana: {formatDate(plan.plan_date)} &bull; Jatuh Tempo: {formatDate(plan.due_date)}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+              Total Anggaran Komponen
+            </div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary, #3859ac)' }}>
+              {formatRupiah(totalBudget)}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+              {requirements.length} jenis komponen dibutuhkan
+            </div>
+          </div>
+        </div>
+
+        {requirements.length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            Belum ada resep BOM aktif untuk produk pada rencana produksi ini, atau produk belum memiliki struktur komponen BOM.
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table" style={{ fontSize: '0.825rem' }}>
+              <thead>
+                <tr>
+                  <th>Kode & Jenis Komponen</th>
+                  <th style={{ width: '90px' }}>Tipe</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Dibutuhkan</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Stok Gudang</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Kekurangan</th>
+                  <th style={{ width: '110px', textAlign: 'right' }}>Harga Satuan</th>
+                  <th style={{ width: '120px', textAlign: 'right' }}>Estimasi Biaya</th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>Pengadaan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requirements.map((comp: any) => {
+                  const gross = Number(comp.gross_qty || 0);
+                  const avail = Number(comp.available_qty || 0);
+                  const short = Number(comp.shortage_qty || 0);
+                  const isShort = short > 0;
+
+                  return (
+                    <tr key={comp.product_id} style={{ backgroundColor: isShort ? '#fffbeb' : undefined }}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>
+                          <code>{comp.product_code}</code> &bull; {comp.product_name}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="chip" style={{ fontSize: '0.7rem' }}>
+                          {comp.item_type || 'KOMPONEN'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>
+                        {formatNumber(gross)} {comp.uom_code}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                        <span style={{ color: avail >= gross ? '#15803d' : '#b45309', fontWeight: 600 }}>
+                          {formatNumber(avail)} {comp.uom_code}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                        {isShort ? (
+                          <span style={{ color: '#b91c1c', fontWeight: 700 }}>
+                            {formatNumber(short)} {comp.uom_code}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#15803d', fontSize: '0.75rem', fontWeight: 600 }}>Cukup</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                        {formatRupiah(comp.estimated_unit_cost || 0)}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-dark, #263f7d)' }}>
+                        {formatRupiah(comp.estimated_total_cost || 0)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {onOpenProcurement && (
+                          <Button
+                            size="sm"
+                            variant={isShort ? 'primary' : 'secondary'}
+                            onClick={() => {
+                              onClose();
+                              onOpenProcurement(comp);
+                            }}
+                            title="Buat PO pengadaan untuk komponen ini"
+                          >
+                            Beli
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 // --- Phase 5: Production Planning & MRP ---
 export function ProductionPlanningPage() {
   const { can } = useAuth();
@@ -312,6 +716,9 @@ export function ProductionPlanningPage() {
   const [mrpResult, setMrpResult] = useState<any | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedPlanForStages, setSelectedPlanForStages] = useState<any | null>(null);
+  const [selectedPlanForRequirements, setSelectedPlanForRequirements] = useState<any | null>(null);
+  const [poInitialData, setPoInitialData] = useState<{ productId?: number | string; qty?: number | string; price?: number | string } | null>(null);
+  const [assembleModalConfig, setAssembleModalConfig] = useState<{ isOpen: boolean; stageTitle: string; previousStageTitle: string; products: any[] } | null>(null);
 
   // Manual production plan form state
   const [planForm, setPlanForm] = useState({
@@ -465,9 +872,10 @@ export function ProductionPlanningPage() {
                 <tr>
                   <th>Judul Rencana & Kode</th>
                   <th>Target Produk (Kuantitas Unit)</th>
+                  <th>Kebutuhan Komponen & Biaya</th>
                   <th>Tahapan Progress</th>
                   <th>Jatuh Tempo</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>Hitung MRP</th>
+                  <th style={{ width: '170px', textAlign: 'center' }}>Aksi Pengadaan & MRP</th>
                 </tr>
               </thead>
               <tbody>
@@ -490,6 +898,57 @@ export function ProductionPlanningPage() {
                             </strong>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Evaluasi Output Tahapan terhadap Target Produksi */}
+                      {Number(plan.target_qty ?? 0) > 0 && (
+                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                          {plan.output_category === 'KURANG' && (
+                            <span className="chip text-xs" style={{ background: '#fef3c7', color: '#b45309', fontWeight: 600 }} title="Hasil output tahapan kurang dari target rencana produksi">
+                              Kurang ({formatNumber(plan.output_variance ?? 0)} unit)
+                            </span>
+                          )}
+                          {plan.output_category === 'LEBIH' && (
+                            <span className="chip text-xs" style={{ background: '#e0e7ff', color: '#4338ca', fontWeight: 600 }} title="Hasil output tahapan melebihi target rencana produksi">
+                              Lebih (+{formatNumber(plan.output_variance ?? 0)} unit)
+                            </span>
+                          )}
+                          {plan.output_category === 'SESUAI' && (
+                            <span className="chip text-xs" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 600 }} title="Hasil output tahapan sesuai tepat target rencana produksi">
+                              Sesuai Target ({formatNumber(plan.produced_qty ?? 0)} unit)
+                            </span>
+                          )}
+                          {!plan.output_category && (
+                            <span className="text-[11px] text-[var(--color-text-muted)]">
+                              {Number(plan.produced_qty ?? 0) > 0 ? `${formatNumber(plan.produced_qty)} unit dibuat` : 'Output tahapan belum diisi'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div className="text-xs flex flex-col gap-1">
+                        <div>
+                          <span className="text-[var(--color-text-muted)]">Komponen: </span>
+                          <strong className="text-[var(--color-text-main)]">{plan.required_components?.length ?? 0} jenis</strong>
+                        </div>
+                        <div>
+                          <span className="text-[var(--color-text-muted)]">Estimasi Biaya: </span>
+                          <strong className="text-[var(--color-primary-dark, #263f7d)] font-mono">
+                            {formatRupiah(plan.total_estimated_budget ?? 0)}
+                          </strong>
+                        </div>
+                        <div className="pt-0.5">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={<Boxes size={13} />}
+                            onClick={() => setSelectedPlanForRequirements(plan)}
+                            title="Lihat rincian jenis komponen, jumlah kebutuhan, dan estimasi biaya"
+                          >
+                            Rincian Komponen
+                          </Button>
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -525,19 +984,32 @@ export function ProductionPlanningPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{formatDate(plan.due_date)}</td>
+                    <td className="text-xs font-mono">{formatDate(plan.due_date)}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {canCreate && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          icon={<Calculator size={14} />}
-                          onClick={() => runMrp.mutate(plan.id)}
-                          loading={runMrp.isPending}
-                        >
-                          Hitung MRP
-                        </Button>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+                        {canCreate && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<ShoppingCart size={13} />}
+                            onClick={() => setSelectedPlanForRequirements(plan)}
+                            title="Lanjutkan ke pengadaan komponen dari rencana produksi ini"
+                          >
+                            Pengadaan PO
+                          </Button>
+                        )}
+                        {canCreate && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={<Calculator size={13} />}
+                            onClick={() => runMrp.mutate(plan.id)}
+                            loading={runMrp.isPending}
+                          >
+                            Hitung MRP
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -545,6 +1017,192 @@ export function ProductionPlanningPage() {
             </table>
           </div>
         )}
+      </section>
+
+      {/* Alur Perakitan Fisik Bertahap: Komponen -> Modul -> Box -> Finished Good */}
+      <section className="card" style={{ marginBottom: 24 }}>
+        <div className="card__header" style={{ marginBottom: 16 }}>
+          <div>
+            <h3 className="card__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Hammer size={18} className="text-[var(--color-primary,#3859ac)]" />
+              Alur Perakitan Bertahap: Stok Komponen → WIP Modul → WIP Box → Finished Good (FG)
+            </h3>
+            <p className="card__subtitle">
+              Setelah pengadaan komponen diterima di gudang (GRN), proses pengerjaan bertahap mengubah komponen menjadi modul, box, hingga unit Finished Good yang siap disimpan dan disewakan ke sekolah.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid--4" style={{ gap: 14 }}>
+          {/* Step 1: Stok Komponen */}
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: '#f8fafc',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="chip" style={{ background: '#e2e8f0', color: '#334155', fontWeight: 700, fontSize: '0.75rem' }}>
+                1. Stok Komponen
+              </span>
+              <PackageCheck size={16} className="text-emerald-600" />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
+              Komponen Fisik Gudang
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              Diterima dari PO supplier via GRN dan tersimpan di rak gudang bahan baku.
+            </p>
+            <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+              <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                <CheckCircle2 size={13} /> Siap dirakit
+              </span>
+            </div>
+          </div>
+
+          {/* Step 2: WIP Modul */}
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="chip" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 700, fontSize: '0.75rem' }}>
+                2. Sub-Assembly Modul
+              </span>
+              <Layers size={16} className="text-sky-600" />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
+              Perakitan Modul (WIP)
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              Merakit komponen sensor, resistor, dan IC menjadi Modul M01 / M02.
+            </p>
+            <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+              {canCreate && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Hammer size={13} />}
+                  onClick={() => {
+                    const modProds = (products.data?.data ?? []).filter((p) => p.category?.code === 'WIP-MOD');
+                    setAssembleModalConfig({
+                      isOpen: true,
+                      stageTitle: 'Perakitan WIP Modul (Tahap 1)',
+                      previousStageTitle: 'Stok Komponen Fisik',
+                      products: modProds.length > 0 ? modProds : (products.data?.data ?? []),
+                    });
+                  }}
+                >
+                  Rakit Modul
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Step 3: WIP Box */}
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="chip" style={{ background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.75rem' }}>
+                3. Assembly Box
+              </span>
+              <Boxes size={16} className="text-amber-600" />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
+              Perakitan Box (WIP)
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              Menggabungkan Modul M01/M02 dan komponen mekanik ke dalam Enclosure Box B01.
+            </p>
+            <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+              {canCreate && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Hammer size={13} />}
+                  onClick={() => {
+                    const boxProds = (products.data?.data ?? []).filter((p) => p.category?.code === 'WIP-BOX');
+                    setAssembleModalConfig({
+                      isOpen: true,
+                      stageTitle: 'Perakitan WIP Box (Tahap 2)',
+                      previousStageTitle: 'WIP Modul M01/M02',
+                      products: boxProds.length > 0 ? boxProds : (products.data?.data ?? []),
+                    });
+                  }}
+                >
+                  Rakit Box
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Step 4: Finished Good */}
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 8,
+              border: '2px solid var(--color-primary-dark, #263f7d)',
+              background: '#f8fafc',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="chip" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 700, fontSize: '0.75rem' }}>
+                4. Finished Good (FG)
+              </span>
+              <CheckCircle2 size={16} className="text-emerald-600" />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary-dark, #263f7d)' }}>
+              Finalisasi Finished Good MLK
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              Penyelesaian akhir Box menjadi Finished Good MLK (1001) yang tersimpan di gudang & siap disewa.
+            </p>
+            <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+              {canCreate && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  icon={<Hammer size={13} />}
+                  onClick={() => {
+                    const fgProds = (products.data?.data ?? []).filter((p) => p.category?.code === 'FG' || p.code === '1001');
+                    setAssembleModalConfig({
+                      isOpen: true,
+                      stageTitle: 'Perakitan Finished Good MLK (Tahap Akhir)',
+                      previousStageTitle: 'WIP Box B01',
+                      products: fgProds.length > 0 ? fgProds : (products.data?.data ?? []),
+                    });
+                  }}
+                >
+                  Rakit Finished Good
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Modal Buat Rencana Produksi dengan Kuantitas Manual */}
@@ -746,6 +1404,51 @@ export function ProductionPlanningPage() {
             qc.invalidateQueries({ queryKey: ['production-plans'] });
           }}
           canManage={canCreate}
+        />
+      )}
+
+      {selectedPlanForRequirements && (
+        <PlanRequirementsModal
+          plan={selectedPlanForRequirements}
+          onClose={() => setSelectedPlanForRequirements(null)}
+          onOpenProcurement={(item) => {
+            setPoInitialData({
+              productId: item?.product_id,
+              qty: item?.shortage_qty && Number(item.shortage_qty) > 0 ? String(item.shortage_qty) : String(item?.gross_qty || 50),
+              price: item?.estimated_unit_cost ? String(item.estimated_unit_cost) : undefined,
+            });
+          }}
+        />
+      )}
+
+      {poInitialData && (
+        <NewPoModal
+          initialProductId={poInitialData.productId}
+          initialQty={poInitialData.qty}
+          initialPrice={poInitialData.price}
+          onClose={() => setPoInitialData(null)}
+          onCreated={() => {
+            setPoInitialData(null);
+            qc.invalidateQueries({ queryKey: ['procurement', 'pos'] });
+            qc.invalidateQueries({ queryKey: ['production-plans'] });
+            notify('Purchase order pengadaan komponen berhasil dibuat.', 'success');
+          }}
+        />
+      )}
+
+      {assembleModalConfig?.isOpen && (
+        <AssembleStageModal
+          isOpen={assembleModalConfig.isOpen}
+          onClose={() => setAssembleModalConfig(null)}
+          products={assembleModalConfig.products}
+          stageTitle={assembleModalConfig.stageTitle}
+          previousStageTitle={assembleModalConfig.previousStageTitle}
+          onSuccessAssemble={() => {
+            setAssembleModalConfig(null);
+            qc.invalidateQueries({ queryKey: ['production-plans'] });
+            qc.invalidateQueries({ queryKey: ['inventory'] });
+            notify('Perakitan tahap berhasil diposting. Stok bertambah di inventaris!', 'success');
+          }}
         />
       )}
     </>

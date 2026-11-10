@@ -915,6 +915,37 @@ textarea {
 }
 
 /* ---------- Modal ---------- */
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-mobile-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -922,44 +953,226 @@ textarea {
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: rgba(38, 63, 125, 0.35);
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: modal-backdrop-in 0.16s ease-out;
 }
 
 .modal {
   width: 100%;
-  max-width: 520px;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
+  max-width: 560px;
+  max-height: min(90vh, 840px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  animation: modal-pop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
 }
+
+/* Modal Sizing */
+.modal--sm { max-width: 440px; }
+.modal--md { max-width: 580px; }
+.modal--lg { max-width: 780px; }
+.modal--xl { max-width: 1020px; }
 
 .modal__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
+  gap: var(--space-4);
+  padding: 18px 24px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.modal__header-content {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .modal__title {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
+  color: var(--color-primary-dark);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.modal__desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.modal__close {
+  flex-shrink: 0;
+  margin-top: -2px;
+  margin-right: -4px;
+  color: var(--color-text-muted);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.modal__close:hover {
+  color: var(--color-text-main);
+  background: var(--color-surface-hover);
 }
 
 .modal__body {
-  padding: var(--space-6);
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 24px;
+  color: var(--color-text-main);
+}
+
+/* Modal Body Scrollbar */
+.modal__body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.modal__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal__body::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 9999px;
+}
+.modal__body::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Form and field whitespace inside modals (eliminates 32px double margins) */
+.modal__body form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal__body .field {
+  margin-bottom: 0 !important;
+  gap: 5px;
+}
+
+.modal__body .field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin-bottom: 0;
+}
+
+.modal__body .field__hint,
+.modal__body .field__error {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.modal__body .grid {
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+.modal__body .grid--2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.modal__body .grid--3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* Tailwind space-y reset inside modal body */
+.modal__body .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.modal__body .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.modal__body .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+.modal__body .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+/* Modal subcomponents whitespace standardization */
+.modal-info-box,
+.modal-callout {
+  background: var(--color-surface-muted, #f8fafc);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.modal-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  padding-top: 6px;
+  margin-bottom: -4px;
+}
+
+.modal-divider {
+  border: none;
+  border-top: 1px dashed var(--color-border);
+  margin: 4px 0;
+}
+
+.confirmation-dialog__content {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-main);
+  padding: 4px 0;
+}
+
+.modal__body .alert {
+  margin-bottom: 4px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
 }
 
 .modal__footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
+  padding: 14px 24px;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface-muted);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.modal__footer > div:only-child {
+  width: 100%;
 }
 
 /* ---------- Toast ---------- */
@@ -1104,12 +1317,6 @@ textarea {
   }
 }
 
-/* Modal Sizing */
-.modal--sm { max-width: 420px; }
-.modal--md { max-width: 560px; }
-.modal--lg { max-width: 760px; }
-.modal--xl { max-width: 980px; }
-
 @media (max-width: 640px) {
   .page-header__title {
     font-size: 22px;
@@ -1133,6 +1340,7 @@ textarea {
     min-height: 42px;
   }
 
+  /* Mobile Modal Bottom-Sheet & Ergonomics */
   .modal-backdrop {
     padding: 0;
     align-items: flex-end;
@@ -1140,27 +1348,81 @@ textarea {
 
   .modal {
     max-width: 100% !important;
-    max-height: 94vh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    box-shadow: 0 -10px 25px -5px rgba(15, 23, 42, 0.25);
+    animation: modal-mobile-slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal::before {
+    content: '';
+    display: block;
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-border);
+    margin: 8px auto 0;
+    flex-shrink: 0;
   }
 
   .modal__header {
-    padding: var(--space-4);
+    padding: 14px 18px;
+    gap: var(--space-3);
+  }
+
+  .modal__title {
+    font-size: 1.05rem;
   }
 
   .modal__body {
-    padding: var(--space-4);
+    padding: 16px 18px;
+  }
+
+  .modal__body form {
+    gap: 12px;
+  }
+
+  .modal__body .grid--2,
+  .modal__body .grid--3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .modal__footer {
-    padding: var(--space-3) var(--space-4);
-    flex-wrap: wrap;
-    gap: var(--space-2);
+    padding: 12px 18px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
 
-  .modal__footer .btn {
+  .modal__footer > div {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+    gap: 8px;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  .modal__footer > div > div {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    align-items: center;
+    justify-content: stretch;
+  }
+
+  .modal__footer .btn,
+  .modal__footer > div .btn,
+  .modal__footer > div > div .btn {
     flex: 1 1 auto;
-    min-height: 44px;
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
   }
 
   .table-wrap {

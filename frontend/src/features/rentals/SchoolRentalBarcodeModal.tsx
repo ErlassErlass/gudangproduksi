@@ -9,6 +9,7 @@ export interface SchoolRentalRecord {
   customer_name?: string;
   customer_code?: string;
   school_name?: string;
+  product_id?: number;
   product_name?: string;
   product_code?: string;
   start_date: string;
@@ -21,6 +22,10 @@ export interface SchoolRentalRecord {
   notes?: string | null;
   production_plan_title?: string;
   production_plan_no?: string;
+  available_fg_stock?: number;
+  is_stock_shortage?: boolean;
+  shortage_qty?: number;
+  stock_notice?: string;
 }
 
 interface SchoolRentalBarcodeModalProps {
